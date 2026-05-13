@@ -3,23 +3,47 @@ var game = new Chess();
 var socket = io();
 var currentMode = null;
 var selectedSquare = null;
-var playerColor = 'w'; // Default
+var playerColor = 'w'; 
 
-// Navigation functions
 function showOnlineSetup() {
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('online-setup').style.display = 'flex';
 }
 
+function joinRoom() {
+    var roomId = document.getElementById('room-id').value;
+    if (!roomId) return alert("Room Name dalo!");
+    
+    document.getElementById('online-setup').style.display = 'none';
+    document.getElementById('waiting-screen').style.display = 'flex';
+    document.getElementById('waiting-room-name').innerText = "Room ID: " + roomId;
+    
+    socket.emit('joinRoom', roomId);
+    document.getElementById('room-display').innerText = "Room: " + roomId;
+}
+
+// Jab dono player aa jayenge, server ye bhejega
+socket.on('playerRole', function(role) {
+    playerColor = role;
+    console.log("Your role: " + role);
+});
+
+socket.on('gameStart', function() {
+    console.log("Both players connected! Starting game...");
+    initGame('online');
+});
+
 function initGame(mode) {
     currentMode = mode;
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('online-setup').style.display = 'none';
+    document.getElementById('waiting-screen').style.display = 'none'; // Hide waiting
     document.getElementById('game-screen').style.display = 'flex';
     
     if (mode === 'bot') playerColor = 'w';
 
     setTimeout(() => {
+        if(board) board.destroy();
         board = Chessboard('myBoard', {
             draggable: false,
             position: 'start',
@@ -31,33 +55,12 @@ function initGame(mode) {
     }, 250);
 }
 
-// Online Connection Logic
-function joinRoom() {
-    var roomId = document.getElementById('room-id').value;
-    if (!roomId) return alert("Room Name dalo!");
-    socket.emit('joinRoom', roomId);
-    document.getElementById('room-display').innerText = "Room: " + roomId;
-}
-
-socket.on('playerRole', function(role) {
-    playerColor = role; // 'w' or 'b' assigned by server
-    initGame('online');
-});
-
-socket.on('move', function(move) {
-    game.move(move);
-    board.position(game.fen());
-    updateStatus();
-});
-
-// Click to Move with Security Check
+// Click-to-move logic wahi rahegi jo pichli baar fix ki thi[span_2](start_span)[span_2](end_span)
 function onSquareClick(square) {
-    // SECURITY CHECK: Sirf apni turn par aur apne pieces hi move honge
     if (currentMode === 'online') {
-        if (game.turn() !== playerColor) return; // Not your turn
-        
+        if (game.turn() !== playerColor) return; 
         var piece = game.get(square);
-        if (selectedSquare === null && piece && piece.color !== playerColor) return; // Don't select enemy pieces
+        if (selectedSquare === null && piece && piece.color !== playerColor) return;
     }
 
     if (selectedSquare) {
@@ -82,13 +85,22 @@ function onSquareClick(square) {
 function highlight(square) {
     var piece = game.get(square);
     if (!piece || (currentMode === 'online' && piece.color !== playerColor)) return;
-
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
-    
     selectedSquare = square;
     $('.dot').remove();
     moves.forEach(m => $('.square-' + m.to).append('<div class="dot"></div>'));
+}
+
+socket.on('move', function(move) {
+    game.move(move);
+    board.position(game.fen());
+    updateStatus();
+});
+
+function updateStatus() {
+    var status = game.in_checkmate() ? "Checkmate!" : (game.turn() === 'w' ? "White Turn" : "Black Turn");
+    document.getElementById('status').innerText = status;
 }
 
 function makeBotMove() {
@@ -98,11 +110,6 @@ function makeBotMove() {
         board.position(game.fen());
         updateStatus();
     }
-}
-
-function updateStatus() {
-    var status = game.in_checkmate() ? "Checkmate!" : (game.turn() === 'w' ? "White Turn" : "Black Turn");
-    document.getElementById('status').innerText = status;
 }
 
 function resetGame() {
@@ -115,4 +122,4 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-    
+            
