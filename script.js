@@ -3,8 +3,8 @@ var game = new Chess();
 var socket = io();
 var currentMode = null;
 var selectedSquare = null;
+var playerColor = 'w';
 
-// Stats Logic (LocalStorage)
 var stats = JSON.parse(localStorage.getItem('tzStats')) || { wins: 0, losses: 0, total: 0 };
 
 function updateStatsUI() {
@@ -14,122 +14,107 @@ function updateStatsUI() {
 }
 updateStatsUI();
 
-function saveStats() {
-    localStorage.setItem('tzStats', JSON.stringify(stats));
-    updateStatsUI();
+function initGame(mode) {
+    if (mode === 'online') {
+        document.getElementById('home-screen').style.display = 'none';
+        document.getElementById('online-setup').style.display = 'flex';
+        return;
+    }
+    
+    currentMode = 'bot';
+    startActualGame();
 }
 
-// Navigation
-function initGame(mode) {
-    currentMode = mode;
+function joinRoom() {
+    var roomId = document.getElementById('room-id').value;
+    if (!roomId) return alert("Room ID dalo!");
+    socket.emit('joinRoom', roomId);
+    currentMode = 'online';
+}
+
+socket.on('playerRole', function(role) {
+    playerColor = role;
+    document.getElementById('online-setup').style.display = 'none';
+    startActualGame();
+});
+
+function startActualGame() {
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
-
-    setTimeout(function() {
-        if (board === null) {
-            board = Chessboard('myBoard', config);
+    
+    setTimeout(() => {
+        if (!board) {
+            board = Chessboard('myBoard', {
+                draggable: false,
+                position: 'start',
+                orientation: playerColor === 'w' ? 'white' : 'black',
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+            });
         }
-        board.start();
         game.reset();
+        board.start();
         board.resize();
         updateStatus();
-        
-        if(mode === 'bot') {
-            stats.total++;
-            saveStats();
-        }
-    }, 150);
+        if(currentMode === 'bot') { stats.total++; saveStats(); }
+    }, 200);
 }
 
 function goToHome() {
-    document.getElementById('home-screen').style.display = 'flex';
-    document.getElementById('game-screen').style.display = 'none';
-}
-
-// Click to Move Logic
-function removeDots() {
-    $('.dot').remove();
-}
-
-function addDot(square) {
-    $('.square-' + square).append('<div class="dot"></div>');
+    location.reload(); // State clean rakhne ke liye reload best hai
 }
 
 function onSquareClick(square) {
-    if (selectedSquare) {
-        var move = game.move({
-            from: selectedSquare,
-            to: square,
-            promotion: 'q'
-        });
+    if (currentMode === 'online' && game.turn() !== playerColor[0]) return;
 
+    if (selectedSquare) {
+        var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
         if (move === null) {
             selectedSquare = null;
-            removeDots();
-            highlightPossibleMoves(square);
+            $('.dot').remove();
+            highlightMoves(square);
         } else {
             board.position(game.fen());
+            if(currentMode === 'online') socket.emit('move', move);
             selectedSquare = null;
-            removeDots();
+            $('.dot').remove();
             updateStatus();
-            checkGameOver();
-            
-            if (currentMode === 'bot' && !game.game_over()) {
-                window.setTimeout(makeBotMove, 400);
-            }
+            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 500);
         }
     } else {
-        highlightPossibleMoves(square);
+        highlightMoves(square);
     }
 }
 
-function highlightPossibleMoves(square) {
+function highlightMoves(square) {
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
-
     selectedSquare = square;
-    removeDots();
-    moves.forEach(m => addDot(m.to));
+    moves.forEach(m => $('.square-' + m.to).append('<div class="dot"></div>'));
 }
 
 function makeBotMove() {
     var moves = game.moves();
-    if (moves.length === 0) return;
-    var move = moves[Math.floor(Math.random() * moves.length)];
+    game.move(moves[Math.floor(Math.random() * moves.length)]);
+    board.position(game.fen());
+    updateStatus();
+}
+
+socket.on('move', function(move) {
     game.move(move);
     board.position(game.fen());
     updateStatus();
-    checkGameOver();
-}
+});
 
 function updateStatus() {
-    var status = (game.turn() === 'w' ? 'White' : 'Black') + ' ki baari';
-    if (game.in_checkmate()) status = 'Checkmate!';
+    var status = game.in_checkmate() ? "Checkmate!" : (game.turn() === 'w' ? "White" : "Black") + " ki baari";
     document.getElementById('status').innerText = status;
 }
 
-function checkGameOver() {
-    if (game.in_checkmate()) {
-        if (game.turn() === 'b') stats.wins++; else stats.losses++;
-        saveStats();
-    }
-}
-
-var config = {
-    draggable: false,
-    position: 'start',
-    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-};
-
-// Event listener for clicks on squares
 $(document).on('click', '[class^="square-"]', function() {
-    var square = $(this).attr('data-square');
-    onSquareClick(square);
+    onSquareClick($(this).attr('data-square'));
 });
 
-function resetGame() {
-    game.reset();
-    board.start();
-    updateStatus();
-        }
-        
+function saveStats() {
+    localStorage.setItem('tzStats', JSON.stringify(stats));
+    updateStatsUI();
+                            }
