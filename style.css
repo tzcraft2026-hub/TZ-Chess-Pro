@@ -1,39 +1,63 @@
 body {
-    background-color: #222;
+    margin: 0;
+    background-color: #1a1a1a;
     color: white;
-    font-family: sans-serif;
-    text-align: center;
-}
-.menu { margin: 20px 0; }
-button {
-    padding: 10px 20px;
-    margin: 5px;
-    background: #769656;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-/* Pieces ko click-through banane ke liye */
-.piece-417db {
-    pointer-events: none; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* Dots ko click-through banane ke liye */
+.screen {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    text-align: center;
+}
+
+.logo { color: #6b8e23; letter-spacing: 2px; font-size: 2.5rem; margin-bottom: 30px; }
+
+/* Stats Styling */
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    background: #2d2d2d;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.stat-box span { display: block; font-size: 0.8rem; color: #888; }
+.stat-box strong { font-size: 1.2rem; color: #fff; }
+
+/* Buttons */
+.btn-main {
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 8px;
+    background: #6b8e23;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.btn-main:hover { background: #556b2f; transform: scale(1.02); }
+
+/* Board Highlighting & Dots */
 .dot {
-    height: 14px;
-    width: 14px;
-    background-color: rgba(255, 0, 0, 0.5);
+    height: 12px;
+    width: 12px;
+    background-color: rgba(255, 0, 0, 0.6);
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
-    z-index: 10;
 }
 
-/* Square ko clickable banane ke liye */
-.square-55d63 {
-    cursor: pointer !important;
-}
+#myBoard { border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
