@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TZ Chess Pro</title>
+    <title>TZ Chess Pro V3</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 </head>
 <body>
 
     <div class="app-container">
+        <!-- Home Screen -->
         <div id="home-screen" class="screen">
             <h1 class="logo">TZ CHESS PRO</h1>
             
@@ -25,18 +26,20 @@
             </div>
         </div>
 
+        <!-- Online Setup Screen -->
         <div id="online-setup" class="screen" style="display: none;">
             <h2 class="logo">Online Play</h2>
             <div class="setup-box">
-                <input type="text" id="room-id" placeholder="Enter Room Name (e.g. TZ-123)">
+                <input type="text" id="room-id" placeholder="Room Name (e.g. TZ123)">
                 <button class="btn-main" onclick="joinRoom()">JOIN / CREATE ROOM</button>
-                <button class="btn-reset" onclick="goToHome()">Back</button>
+                <button class="btn-reset" onclick="location.reload()">Back</button>
             </div>
         </div>
 
+        <!-- Game Screen -->
         <div id="game-screen" class="screen" style="display: none;">
             <div class="game-header">
-                <button class="btn-back" onclick="goToHome()">← Exit</button>
+                <button class="btn-back" onclick="location.reload()">← Exit</button>
                 <div id="status">Taiyaar?</div>
             </div>
 
