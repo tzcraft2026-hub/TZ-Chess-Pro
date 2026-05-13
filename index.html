@@ -3,21 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TZ Chess Online</title>
+    <title>TZ Chess Pro</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Chess Board ki CSS aur JS -->
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 </head>
 <body>
 
-    <div class="menu">
-    <button onclick="startBotMode()">Play with Bot</button>
-    <button onclick="startOnlineMode()">Play with Friend</button>
-    <p id="status">Mode select karein</p>
-</div>
-<div id="myBoard" style="width: 100%; max-width: 400px; margin: auto;"></div>
+    <div id="home-screen" class="screen">
+        <h1 class="logo">TZ CHESS PRO</h1>
+        
+        <div class="stats-container">
+            <div class="stat-box"><span>Matches</span><strong id="stat-total">0</strong></div>
+            <div class="stat-box"><span>Wins</span><strong id="stat-wins">0</strong></div>
+            <div class="stat-box"><span>Losses</span><strong id="stat-losses">0</strong></div>
+        </div>
 
-    <!-- Libraries -->
+        <div class="menu-buttons">
+            <button class="btn-main" onclick="initGame('bot')">PLAY WITH BOT</button>
+            <button class="btn-main" onclick="initGame('online')">PLAY WITH FRIEND</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen" style="display: none;">
+        <div class="game-header">
+            <button class="btn-back" onclick="goToHome()">← Exit</button>
+            <div id="status">Taiyaar ho?</div>
+        </div>
+
+        <div id="myBoard"></div>
+
+        <div class="game-footer">
+            <button class="btn-reset" onclick="resetGame()">New Game</button>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
