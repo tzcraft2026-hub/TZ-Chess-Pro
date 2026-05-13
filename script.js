@@ -4,7 +4,7 @@ var socket = io();
 var currentMode = null;
 var selectedSquare = null;
 
-// Stats Logic
+// Stats Logic (LocalStorage)
 var stats = JSON.parse(localStorage.getItem('tzStats')) || { wins: 0, losses: 0, total: 0 };
 
 function updateStatsUI() {
@@ -14,30 +14,36 @@ function updateStatsUI() {
 }
 updateStatsUI();
 
-// Navigation Functions
-function initGame(mode) {
-    currentMode = mode;
-    document.getElementById('home-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
-    
-    if(mode === 'bot') {
-        game.reset();
-        board.start();
-        stats.total++;
-        saveStats();
-    } else {
-        // Online logic yahan aayega
-    }
-}
-
-function goToHome() {
-    document.getElementById('home-screen').style.display = 'block';
-    document.getElementById('game-screen').style.display = 'none';
-}
-
 function saveStats() {
     localStorage.setItem('tzStats', JSON.stringify(stats));
     updateStatsUI();
+}
+
+// Navigation
+function initGame(mode) {
+    currentMode = mode;
+    document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'flex';
+
+    setTimeout(function() {
+        if (board === null) {
+            board = Chessboard('myBoard', config);
+        }
+        board.start();
+        game.reset();
+        board.resize();
+        updateStatus();
+        
+        if(mode === 'bot') {
+            stats.total++;
+            saveStats();
+        }
+    }, 150);
+}
+
+function goToHome() {
+    document.getElementById('home-screen').style.display = 'flex';
+    document.getElementById('game-screen').style.display = 'none';
 }
 
 // Click to Move Logic
@@ -46,12 +52,10 @@ function removeDots() {
 }
 
 function addDot(square) {
-    var $square = $('#myBoard .square-' + square);
-    $square.append('<div class="dot"></div>');
+    $('.square-' + square).append('<div class="dot"></div>');
 }
 
 function onSquareClick(square) {
-    // Agar pehle se piece selected hai, toh move karo
     if (selectedSquare) {
         var move = game.move({
             from: selectedSquare,
@@ -60,27 +64,26 @@ function onSquareClick(square) {
         });
 
         if (move === null) {
-            // Galat move, selection reset karo
             selectedSquare = null;
             removeDots();
-            highlightSquare(square); // Naya piece select karo
+            highlightPossibleMoves(square);
         } else {
-            // Sahi move
             board.position(game.fen());
             selectedSquare = null;
             removeDots();
+            updateStatus();
             checkGameOver();
             
             if (currentMode === 'bot' && !game.game_over()) {
-                window.setTimeout(makeBotMove, 250);
+                window.setTimeout(makeBotMove, 400);
             }
         }
     } else {
-        highlightSquare(square);
+        highlightPossibleMoves(square);
     }
 }
 
-function highlightSquare(square) {
+function highlightPossibleMoves(square) {
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
 
@@ -95,26 +98,31 @@ function makeBotMove() {
     var move = moves[Math.floor(Math.random() * moves.length)];
     game.move(move);
     board.position(game.fen());
+    updateStatus();
     checkGameOver();
+}
+
+function updateStatus() {
+    var status = (game.turn() === 'w' ? 'White' : 'Black') + ' ki baari';
+    if (game.in_checkmate()) status = 'Checkmate!';
+    document.getElementById('status').innerText = status;
 }
 
 function checkGameOver() {
     if (game.in_checkmate()) {
-        if (game.turn() === 'b') { stats.wins++; alert("You Win!"); }
-        else { stats.losses++; alert("You Lose!"); }
+        if (game.turn() === 'b') stats.wins++; else stats.losses++;
         saveStats();
     }
 }
 
 var config = {
-    draggable: false, // Drag band kar diya
+    draggable: false,
     position: 'start',
     pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
 };
-board = Chessboard('myBoard', config);
 
-// Click event listener
-$('#myBoard').on('click', '.square-55d63', function() {
+// Event listener for clicks on squares
+$(document).on('click', '[class^="square-"]', function() {
     var square = $(this).attr('data-square');
     onSquareClick(square);
 });
@@ -122,6 +130,6 @@ $('#myBoard').on('click', '.square-55d63', function() {
 function resetGame() {
     game.reset();
     board.start();
-    stats.total++;
-    saveStats();
-}
+    updateStatus();
+        }
+        
