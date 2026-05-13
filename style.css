@@ -1,43 +1,19 @@
-* { box-sizing: border-box; }
+* { box-sizing: border-box; touch-action: manipulation; }
 body, html { 
     margin: 0; padding: 0; height: 100%; width: 100%; 
     background-color: #121212; color: white; font-family: sans-serif;
-    overflow: hidden; /* Scroll band karne ke liye */
+    overflow: hidden; 
 }
-
 .app-container { height: 100vh; width: 100vw; display: flex; flex-direction: column; }
-
-.screen { 
-    flex: 1; display: flex; flex-direction: column; align-items: center; 
-    padding: 20px; width: 100%; 
-}
-
+.screen { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px; width: 100%; }
 .logo { color: #8cb302; font-size: 1.8rem; margin: 20px 0; text-align: center; }
-
-.stats-container {
-    display: flex; width: 100%; max-width: 350px; justify-content: space-around;
-    background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 25px;
-}
-.stat-box span { display: block; font-size: 0.7rem; color: #888; }
-
-.btn-main {
-    width: 100%; max-width: 350px; padding: 14px; margin-bottom: 12px;
-    border: none; border-radius: 8px; background: #6b8e23; color: white; font-weight: bold;
-}
-
+.stats-container { display: flex; width: 100%; max-width: 350px; justify-content: space-around; background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #333; }
+.stat-box span { display: block; font-size: 0.7rem; color: #888; text-transform: uppercase; }
+.btn-main { width: 100%; max-width: 350px; padding: 16px; margin-bottom: 12px; border: none; border-radius: 8px; background: #6b8e23; color: white; font-weight: bold; font-size: 1rem; }
 #myBoard { width: 92vw; max-width: 380px; margin: auto 0; }
-
 .game-header { display: flex; justify-content: space-between; width: 100%; max-width: 380px; align-items: center; margin-bottom: 10px; }
-#status { color: #ffeb3b; font-size: 0.9rem; }
-
-.btn-reset, .btn-back { background: #333; color: white; border: none; padding: 8px 12px; border-radius: 5px; }
-
-/* Clickable squares highlight fix */
-.dot {
-    height: 12px; width: 12px; background: rgba(255, 0, 0, 0.6);
-    border-radius: 50%; position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); pointer-events: none;
-}
-
-.setup-box { width: 100%; max-width: 350px; text-align: center; }
-#room-id { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 5px; border: none; }
+#status { color: #ffeb3b; font-size: 1rem; font-weight: bold; }
+.btn-reset, .btn-back { background: #333; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-size: 0.9rem; }
+#room-id { width: 100%; max-width: 350px; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; }
+.dot { height: 12px; width: 12px; background: rgba(255, 0, 0, 0.6); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+                                                   
