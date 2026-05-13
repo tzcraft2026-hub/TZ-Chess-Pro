@@ -1,19 +1,18 @@
-* { box-sizing: border-box; touch-action: manipulation; }
+* { box-sizing: border-box; }
 body, html { 
-    margin: 0; padding: 0; height: 100%; width: 100%; 
+    margin: 0; padding: 0; height: 100%; overflow: hidden; 
     background-color: #121212; color: white; font-family: sans-serif;
-    overflow: hidden; 
 }
-.app-container { height: 100vh; width: 100vw; display: flex; flex-direction: column; }
-.screen { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px; width: 100%; }
-.logo { color: #8cb302; font-size: 1.8rem; margin: 20px 0; text-align: center; }
-.stats-container { display: flex; width: 100%; max-width: 350px; justify-content: space-around; background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #333; }
-.stat-box span { display: block; font-size: 0.7rem; color: #888; text-transform: uppercase; }
-.btn-main { width: 100%; max-width: 350px; padding: 16px; margin-bottom: 12px; border: none; border-radius: 8px; background: #6b8e23; color: white; font-weight: bold; font-size: 1rem; }
-#myBoard { width: 92vw; max-width: 380px; margin: auto 0; }
-.game-header { display: flex; justify-content: space-between; width: 100%; max-width: 380px; align-items: center; margin-bottom: 10px; }
-#status { color: #ffeb3b; font-size: 1rem; font-weight: bold; }
-.btn-reset, .btn-back { background: #333; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-size: 0.9rem; }
-#room-id { width: 100%; max-width: 350px; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; }
-.dot { height: 12px; width: 12px; background: rgba(255, 0, 0, 0.6); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-                                                   
+.screen { display: flex; flex-direction: column; align-items: center; padding: 20px; width: 100%; height: 100vh; }
+#home-screen { padding-top: 5vh; } /* Upar shift karne ke liye */
+
+.logo { color: #8cb302; margin-bottom: 20px; }
+.stats-container { display: flex; width: 100%; max-width: 350px; justify-content: space-around; background: #1e1e1e; padding: 10px; border-radius: 10px; margin-bottom: 20px; }
+.btn-main { width: 100%; max-width: 350px; padding: 15px; margin-bottom: 10px; background: #6b8e23; border: none; color: white; font-weight: bold; border-radius: 8px; }
+
+#myBoard { width: 90vw; max-width: 400px; margin: 10px 0; }
+.game-header { display: flex; justify-content: space-between; width: 100%; max-width: 400px; margin-bottom: 10px; }
+
+/* Move Hints (Red Dots) */
+.dot { height: 12px; width: 12px; background: rgba(255, 0, 0, 0.5); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+#room-id { width: 100%; max-width: 350px; padding: 12px; margin-bottom: 10px; }
