@@ -5,6 +5,7 @@ var currentMode = null;
 var selectedSquare = null;
 var playerColor = 'w'; 
 
+// 1. Navigation & Room Join
 function showOnlineSetup() {
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('online-setup').style.display = 'flex';
@@ -22,22 +23,28 @@ function joinRoom() {
     document.getElementById('room-display').innerText = "Room: " + roomId;
 }
 
-// Jab dono player aa jayenge, server ye bhejega
+// 2. Synchronization Events (Zaroori!)
 socket.on('playerRole', function(role) {
-    playerColor = role;
-    console.log("Your role: " + role);
+    playerColor = role; // 'w' or 'b[span_2](start_span)'[span_2](end_span)
 });
 
 socket.on('gameStart', function() {
-    console.log("Both players connected! Starting game...");
     initGame('online');
 });
 
+// Jab dusra player move kare, tab ye chalega
+socket.on('move', function(move) {
+    game.move(move); // Chess logic update[span_3](start_span)[span_3](end_span)
+    board.position(game.fen()); // Board UI update
+    updateStatus();
+});
+
+// 3. Game Initialization
 function initGame(mode) {
     currentMode = mode;
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('online-setup').style.display = 'none';
-    document.getElementById('waiting-screen').style.display = 'none'; // Hide waiting
+    document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
     
     if (mode === 'bot') playerColor = 'w';
@@ -46,17 +53,17 @@ function initGame(mode) {
         if(board) board.destroy();
         board = Chessboard('myBoard', {
             draggable: false,
-            position: 'start',
+            position: game.fen(), // Hamesha current state se shuru karein
             orientation: playerColor === 'w' ? 'white' : 'black',
             pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
         });
-        game.reset();
         updateStatus();
     }, 250);
 }
 
-// Click-to-move logic wahi rahegi jo pichli baar fix ki thi[span_2](start_span)[span_2](end_span)
+// 4. Move Logic (Click-to-Move)
 function onSquareClick(square) {
+    // Check: Kya ye is player ki turn hai?[span_4](start_span)[span_4](end_span)
     if (currentMode === 'online') {
         if (game.turn() !== playerColor) return; 
         var piece = game.get(square);
@@ -65,17 +72,26 @@ function onSquareClick(square) {
 
     if (selectedSquare) {
         var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
+        
         if (move === null) {
             selectedSquare = null;
             $('.dot').remove();
             highlight(square);
         } else {
-            board.position(game.fen());
-            if(currentMode === 'online') socket.emit('move', move);
+            // Sahi Move!
+            board.position(game.fen()); // Apna board update karein
+            
+            if(currentMode === 'online') {
+                socket.emit('move', move); // Server ko move bhejein[span_5](start_span)[span_5](end_span)
+            }
+            
             selectedSquare = null;
             $('.dot').remove();
             updateStatus();
-            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 500);
+            
+            if (currentMode === 'bot' && !game.game_over()) {
+                setTimeout(makeBotMove, 500);
+            }
         }
     } else {
         highlight(square);
@@ -85,24 +101,16 @@ function onSquareClick(square) {
 function highlight(square) {
     var piece = game.get(square);
     if (!piece || (currentMode === 'online' && piece.color !== playerColor)) return;
+    
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
+    
     selectedSquare = square;
     $('.dot').remove();
     moves.forEach(m => $('.square-' + m.to).append('<div class="dot"></div>'));
 }
 
-socket.on('move', function(move) {
-    game.move(move);
-    board.position(game.fen());
-    updateStatus();
-});
-
-function updateStatus() {
-    var status = game.in_checkmate() ? "Checkmate!" : (game.turn() === 'w' ? "White Turn" : "Black Turn");
-    document.getElementById('status').innerText = status;
-}
-
+// 5. Bot & Utility
 function makeBotMove() {
     var moves = game.moves();
     if (moves.length > 0) {
@@ -112,6 +120,19 @@ function makeBotMove() {
     }
 }
 
+function updateStatus() {
+    var status = "";
+    if (game.in_checkmate()) {
+        status = "Checkmate! Game Over.";
+    } else if (game.in_draw()) {
+        status = "Game Draw!";
+    } else {
+        status = (game.turn() === 'w' ? "White" : "Black") + " ki baari";
+        if (game.in_check()) status += " (Check!)";
+    }
+    document.getElementById('status').innerText = status;
+}
+
 function resetGame() {
     if (currentMode === 'online') return alert("Online mode mein reset nahi kar sakte!");
     game.reset();
@@ -119,7 +140,7 @@ function resetGame() {
     updateStatus();
 }
 
+// Click Listener
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-            
