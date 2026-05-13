@@ -6,7 +6,6 @@
     <title>TZ Chess Pro</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    <!-- Font Awesome icons for better looking buttons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -34,16 +33,24 @@
             </div>
         </div>
 
+        <!-- Waiting Screen (Naya Add Kiya) -->
+        <div id="waiting-screen" class="screen" style="display: none; justify-content: center;">
+            <div class="loader-container">
+                <h2 style="color: #ffeb3b;">Waiting for Friend...</h2>
+                <p id="waiting-room-name" style="color: #888;"></p>
+                <div class="spinner"></div>
+                <button class="btn-back-text" onclick="location.reload()" style="margin-top: 20px;">Cancel</button>
+            </div>
+        </div>
+
         <!-- Game Screen -->
         <div id="game-screen" class="screen" style="display: none;">
             <div class="game-header">
                 <button class="btn-exit" onclick="location.reload()"><i class="fas fa-times"></i></button>
-                <div id="status">White Turn</div>
+                <div id="status">Taiyaar?</div>
                 <button class="btn-top-reset" onclick="resetGame()"><i class="fas fa-redo"></i></button>
             </div>
-
             <div id="myBoard"></div>
-            
             <div class="game-footer">
                 <p id="room-display" style="color: #666; font-size: 0.8rem;"></p>
             </div>
@@ -56,4 +63,5 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
-</html>
+        </html>
+        
