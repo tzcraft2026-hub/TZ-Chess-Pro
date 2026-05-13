@@ -1,50 +1,82 @@
 body {
     margin: 0;
-    background-color: #1a1a1a;
+    background-color: #121212;
     color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: sans-serif;
     display: flex;
-    justify-content: false;
-    align-items: false;
+    justify-content: center;
     height: 100vh;
-    overflow: hidden;
 }
 
-/* Game Screen ka layout sahi karne ke liye */
-#game-screen {
+.screen {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    display: flex;
     flex-direction: column;
-    align-items: center;
-    padding-top: 10px;
 }
+
+/* Home Screen Top Alignment */
+#home-screen { justify-content: flex-start; padding-top: 40px; }
+
+.logo { color: #8cb302; font-size: 2rem; text-align: center; margin-bottom: 20px; }
+
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    background: #1e1e1e;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border: 1px solid #333;
+}
+.stat-box span { display: block; font-size: 0.7rem; color: #888; text-transform: uppercase; }
+.stat-box strong { font-size: 1.2rem; }
+
+.btn-main {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #6b8e23;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Game Screen Layout */
+#game-screen { align-items: center; }
 
 .game-header {
     display: flex;
     justify-content: space-between;
-    width: 90%;
-    max-width: 400px;
-    margin-bottom: 15px;
+    width: 100%;
     align-items: center;
+    margin-bottom: 15px;
 }
 
-/* Board ka size mobile par fix karne ke liye */
+#status { color: #ffeb3b; font-weight: bold; }
+
 #myBoard {
-    width: 95vw;
+    width: 100%;
     max-width: 400px;
-    margin: 10px auto;
-    touch-action: none; /* Mobile scroll issue fix */
+    border: 3px solid #333;
 }
 
-.game-footer {
-    margin-top: 20px;
-    width: 90%;
-    max-width: 400px;
+/* Red Dots Styling */
+.dot {
+    height: 15px;
+    width: 15px;
+    background-color: rgba(255, 0, 0, 0.5);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
 }
 
-.btn-back, .btn-reset {
-    padding: 8px 15px;
-    background: #444;
-    border: none;
-    color: white;
-    border-radius: 5px;
-    cursor: pointer;
-}
+.game-footer { margin-top: 20px; width: 100%; }
+.btn-reset { width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 5px; }
+    
