@@ -3,8 +3,9 @@ var game = new Chess();
 var socket = io();
 var currentMode = null;
 var selectedSquare = null;
+var playerColor = 'w'; // Default
 
-// Navigation
+// Navigation functions
 function showOnlineSetup() {
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('online-setup').style.display = 'flex';
@@ -13,25 +14,52 @@ function showOnlineSetup() {
 function initGame(mode) {
     currentMode = mode;
     document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('online-setup').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
     
+    if (mode === 'bot') playerColor = 'w';
+
     setTimeout(() => {
-        board = Chessboard('myBoard', { draggable: false, position: 'start', pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png' });
+        board = Chessboard('myBoard', {
+            draggable: false,
+            position: 'start',
+            orientation: playerColor === 'w' ? 'white' : 'black',
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        });
         game.reset();
         updateStatus();
-    }, 200);
+    }, 250);
 }
 
+// Online Connection Logic
 function joinRoom() {
     var roomId = document.getElementById('room-id').value;
     if (!roomId) return alert("Room Name dalo!");
     socket.emit('joinRoom', roomId);
-    document.getElementById('online-setup').style.display = 'none';
-    initGame('online');
+    document.getElementById('room-display').innerText = "Room: " + roomId;
 }
 
-// Click to Move Logic
+socket.on('playerRole', function(role) {
+    playerColor = role; // 'w' or 'b' assigned by server
+    initGame('online');
+});
+
+socket.on('move', function(move) {
+    game.move(move);
+    board.position(game.fen());
+    updateStatus();
+});
+
+// Click to Move with Security Check
 function onSquareClick(square) {
+    // SECURITY CHECK: Sirf apni turn par aur apne pieces hi move honge
+    if (currentMode === 'online') {
+        if (game.turn() !== playerColor) return; // Not your turn
+        
+        var piece = game.get(square);
+        if (selectedSquare === null && piece && piece.color !== playerColor) return; // Don't select enemy pieces
+    }
+
     if (selectedSquare) {
         var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
         if (move === null) {
@@ -44,7 +72,7 @@ function onSquareClick(square) {
             selectedSquare = null;
             $('.dot').remove();
             updateStatus();
-            if (currentMode === 'bot') setTimeout(makeBotMove, 500);
+            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 500);
         }
     } else {
         highlight(square);
@@ -52,23 +80,39 @@ function onSquareClick(square) {
 }
 
 function highlight(square) {
+    var piece = game.get(square);
+    if (!piece || (currentMode === 'online' && piece.color !== playerColor)) return;
+
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
+    
     selectedSquare = square;
+    $('.dot').remove();
     moves.forEach(m => $('.square-' + m.to).append('<div class="dot"></div>'));
 }
 
 function makeBotMove() {
     var moves = game.moves();
-    game.move(moves[Math.floor(Math.random() * moves.length)]);
-    board.position(game.fen());
-    updateStatus();
+    if (moves.length > 0) {
+        game.move(moves[Math.floor(Math.random() * moves.length)]);
+        board.position(game.fen());
+        updateStatus();
+    }
 }
 
 function updateStatus() {
-    document.getElementById('status').innerText = (game.turn() === 'w' ? "White" : "Black") + " Turn";
+    var status = game.in_checkmate() ? "Checkmate!" : (game.turn() === 'w' ? "White Turn" : "Black Turn");
+    document.getElementById('status').innerText = status;
+}
+
+function resetGame() {
+    if (currentMode === 'online') return alert("Online mode mein reset nahi kar sakte!");
+    game.reset();
+    board.start();
+    updateStatus();
 }
 
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
+    
