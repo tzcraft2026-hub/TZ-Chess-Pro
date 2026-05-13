@@ -23,11 +23,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('move', (move) => {
-    // Room ke baaki players ko move bhejo
-    socket.to(currentRoomId).emit('move', move); 
-});
-    
+    socket.on('move', (data) => {
+        socket.to(data.room).emit('opponentMove', data.move);
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
