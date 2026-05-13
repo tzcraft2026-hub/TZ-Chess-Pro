@@ -10,7 +10,7 @@ socket.on('connect', function() {
     console.log("Server se jud gaye!");
 });
 
-function startMultiplayer() {
+function startOnlineMode() {
     let inputRoom = prompt("Code TZ- se shuru karein (Ex: TZ-99):");
     if (inputRoom && inputRoom.toUpperCase().startsWith("TZ-")) {
         roomID = inputRoom.toUpperCase();
@@ -22,7 +22,7 @@ function startMultiplayer() {
     }
 }
 
-function startBotGame() {
+function startBotMode() {
     currentMode = 'bot';
     playerColor = 'w';
     game.reset();
