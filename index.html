@@ -6,37 +6,48 @@
     <title>TZ Chess Pro</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <!-- Font Awesome icons for better looking buttons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- Home Screen -->
-    <div id="home-screen" class="screen">
-        <h1 class="logo">TZ CHESS PRO</h1>
-        <div class="stats-container">
-            <div class="stat-box"><span>Matches</span><strong id="stat-total">0</strong></div>
-            <div class="stat-box"><span>Wins</span><strong id="stat-wins">0</strong></div>
-            <div class="stat-box"><span>Losses</span><strong id="stat-losses">0</strong></div>
+    <div class="app-container">
+        <!-- Home Screen -->
+        <div id="home-screen" class="screen">
+            <h1 class="logo">TZ CHESS PRO</h1>
+            <div class="stats-container">
+                <div class="stat-box"><span>Matches</span><strong id="stat-total">0</strong></div>
+                <div class="stat-box"><span>Wins</span><strong id="stat-wins">0</strong></div>
+                <div class="stat-box"><span>Losses</span><strong id="stat-losses">0</strong></div>
+            </div>
+            <button class="btn-main" onclick="initGame('bot')"><i class="fas fa-robot"></i> PLAY WITH BOT</button>
+            <button class="btn-main" onclick="showOnlineSetup()"><i class="fas fa-users"></i> PLAY WITH FRIEND</button>
         </div>
-        <button class="btn-main" onclick="initGame('bot')">PLAY WITH BOT</button>
-        <button class="btn-main" onclick="showOnlineSetup()">PLAY WITH FRIEND</button>
-    </div>
 
-    <!-- Room Setup (Direct Board aane se rokne ke liye) -->
-    <div id="online-setup" class="screen" style="display: none;">
-        <h2 class="logo">Online Play</h2>
-        <input type="text" id="room-id" placeholder="Enter Room Name">
-        <button class="btn-main" onclick="joinRoom()">JOIN ROOM</button>
-        <button class="btn-reset" onclick="location.reload()">Back</button>
-    </div>
-
-    <!-- Game Screen -->
-    <div id="game-screen" class="screen" style="display: none;">
-        <div class="game-header">
-            <button class="btn-back" onclick="location.reload()">← Exit</button>
-            <div id="status">Taiyaar?</div>
+        <!-- Room Setup -->
+        <div id="online-setup" class="screen" style="display: none;">
+            <h2 class="logo">Online Play</h2>
+            <div class="setup-box">
+                <input type="text" id="room-id" placeholder="Enter Room Name...">
+                <button class="btn-main" onclick="joinRoom()">JOIN / CREATE</button>
+                <button class="btn-back-text" onclick="location.reload()">Back to Menu</button>
+            </div>
         </div>
-        <div id="myBoard"></div>
-        <button class="btn-reset" onclick="resetGame()">New Game</button>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen" style="display: none;">
+            <div class="game-header">
+                <button class="btn-exit" onclick="location.reload()"><i class="fas fa-times"></i></button>
+                <div id="status">White Turn</div>
+                <button class="btn-top-reset" onclick="resetGame()"><i class="fas fa-redo"></i></button>
+            </div>
+
+            <div id="myBoard"></div>
+            
+            <div class="game-footer">
+                <p id="room-display" style="color: #666; font-size: 0.8rem;"></p>
+            </div>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
