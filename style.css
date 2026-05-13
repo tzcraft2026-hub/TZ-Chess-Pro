@@ -4,7 +4,7 @@ body {
     color: white;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
-    justify-content: center;
+    justify-content: false;
     align-items: false;
     height: 100vh;
     overflow: hidden;
