@@ -1,0 +1,39 @@
+body {
+    background-color: #222;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+}
+.menu { margin: 20px 0; }
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    background: #769656;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+/* Pieces ko click-through banane ke liye */
+.piece-417db {
+    pointer-events: none; 
+}
+
+/* Dots ko click-through banane ke liye */
+.dot {
+    height: 14px;
+    width: 14px;
+    background-color: rgba(255, 0, 0, 0.5);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Square ko clickable banane ke liye */
+.square-55d63 {
+    cursor: pointer !important;
+}
