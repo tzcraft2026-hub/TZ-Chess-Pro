@@ -22,11 +22,10 @@ function joinRoom() {
     document.getElementById('room-display').innerText = "Room: " + roomId;
 }
 
-// Dono player aane par ye trigger hoga
 socket.on('playerRole', function(role) { playerColor = role; });
 socket.on('gameStart', function() { initGame('online'); });
 
-// Jab dusra player move kare[span_6](start_span)[span_6](end_span)
+// Sync Fix: Move aate hi board update hona chahiye[span_2](start_span)[span_2](end_span)
 socket.on('move', function(move) {
     game.move(move);
     board.position(game.fen());
@@ -66,7 +65,7 @@ function onSquareClick(square) {
             highlight(square);
         } else {
             board.position(game.fen());
-            if(currentMode === 'online') socket.emit('move', move); // Server ko batana[span_7](start_span)[span_7](end_span)
+            if(currentMode === 'online') socket.emit('move', move); // Move bhejna[span_3](start_span)[span_3](end_span)
             selectedSquare = null;
             $('.dot').remove();
             updateStatus();
@@ -102,4 +101,4 @@ function makeBotMove() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-
+        
