@@ -1,15 +1,25 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Sabse important line jo files ko load karegi
+app.use(express.static(__dirname)); 
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 io.on('connection', (socket) => {
+    console.log('A user connected: ' + socket.id);
+
     socket.on('joinRoom', (roomId) => {
         socket.join(roomId);
-        socket.roomId = roomId; // Room track karne ke liye
+        socket.roomId = roomId;
 
         const clients = io.sockets.adapter.rooms.get(roomId);
         const numClients = clients ? clients.size : 0;
@@ -18,12 +28,12 @@ io.on('connection', (socket) => {
             socket.emit('playerRole', 'w');
         } else if (numClients === 2) {
             socket.emit('playerRole', 'b');
-            io.to(roomId).emit('gameStart'); // Dono ko batana ki game shuru hai[span_3](start_span)[span_3](end_span)
+            io.to(roomId).emit('gameStart'); // Dono player aane par game shuru[span_0](start_span)[span_0](end_span)
         }
     });
 
     socket.on('move', (move) => {
-        // Yeh line Browser B ko move bhejti hai[span_4](start_span)[span_4](end_span)
+        // Move ko dusre player tak pahunchana[span_1](start_span)[span_1](end_span)
         if (socket.roomId) {
             socket.to(socket.roomId).emit('move', move);
         }
@@ -34,5 +44,6 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, () => console.log('Server running on port 3000'));
-
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    
