@@ -6,25 +6,27 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(__dirname));
-
 io.on('connection', (socket) => {
-    socket.on('joinRoom', (room) => {
-        socket.join(room);
-        const clients = io.sockets.adapter.rooms.get(room);
+    socket.on('joinRoom', (roomId) => {
+        socket.join(roomId);
+        socket.roomId = roomId; // Room track karne ke liye
+
+        const clients = io.sockets.adapter.rooms.get(roomId);
         const numClients = clients ? clients.size : 0;
 
-        // Jo pehle join karega wo White ('w'), jo doosra wo Black ('b')
-        let role = (numClients === 1) ? 'w' : 'b';
-        socket.emit('playerRole', role);
-
-        if (numClients === 2) {
-            io.to(room).emit('gameStart', "Match Shuru!");
+        if (numClients === 1) {
+            socket.emit('playerRole', 'w');
+        } else if (numClients === 2) {
+            socket.emit('playerRole', 'b');
+            io.to(roomId).emit('gameStart'); // Dono ko batana ki game shuru hai[span_3](start_span)[span_3](end_span)
         }
     });
 
-    socket.on('move', (data) => {
-        socket.to(data.room).emit('opponentMove', data.move);
+    socket.on('move', (move) => {
+        // Yeh line Browser B ko move bhejti hai[span_4](start_span)[span_4](end_span)
+        if (socket.roomId) {
+            socket.to(socket.roomId).emit('move', move);
+        }
     });
 
     socket.on('disconnect', () => {
@@ -32,8 +34,5 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+server.listen(3000, () => console.log('Server running on port 3000'));
 
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
