@@ -9,9 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-
     <div class="app-container">
-        <!-- Home Screen -->
+        <!-- Home -->
         <div id="home-screen" class="screen">
             <h1 class="logo">TZ CHESS PRO</h1>
             <div class="stats-container">
@@ -23,43 +22,39 @@
             <button class="btn-main" onclick="showOnlineSetup()"><i class="fas fa-users"></i> PLAY WITH FRIEND</button>
         </div>
 
-        <!-- Online Setup Screen (Updated) -->
+        <!-- Online Setup -->
         <div id="online-setup" class="screen" style="display: none;">
             <h1 class="logo" style="margin-top: 50px;">Online Play</h1>
-            <div class="setup-box" style="width: 100%; max-width: 350px;">
-                <input type="text" id="room-id" placeholder="Enter Room Name...">
-                <button class="btn-main" onclick="joinRoom()" style="margin-top: 10px;">JOIN / CREATE</button>
-                <button class="btn-secondary" onclick="location.reload()">
-                    <i class="fas fa-arrow-left"></i> Back to Home
-                </button>
-            </div>
+            <input type="text" id="room-id" placeholder="Enter Room Name...">
+            <button class="btn-main" onclick="joinRoom()">JOIN / CREATE</button>
+            <button class="btn-secondary" onclick="location.reload()">Back to Home</button>
         </div>
 
-        <!-- Waiting Screen -->
+        <!-- Waiting -->
         <div id="waiting-screen" class="screen" style="display: none; justify-content: center;">
             <div class="loader-container">
-                <h2 style="color: #ffeb3b;">Waiting for Friend...</h2>
+                <h2 style="color: #ffeb3b;">Waiting...</h2>
                 <p id="waiting-room-name" style="color: #888;"></p>
                 <div class="spinner"></div>
                 <button class="btn-secondary" onclick="location.reload()">Cancel</button>
             </div>
         </div>
 
-        <!-- Game Screen -->
+        <!-- Game -->
         <div id="game-screen" class="screen" style="display: none;">
             <div class="game-header">
                 <button class="btn-exit" onclick="location.reload()"><i class="fas fa-times"></i></button>
-                <div id="status">Taiyaar?</div>
+                <div id="status">Your Turn</div>
                 <button class="btn-top-reset" onclick="resetGame()"><i class="fas fa-redo"></i></button>
             </div>
             <div id="myBoard"></div>
-            <div id="room-display" style="color: #666; font-size: 0.8rem; margin-top: 15px;"></div>
+            <div id="room-display" style="color: #555; font-size: 0.8rem; margin-top: 15px;"></div>
         </div>
 
         <!-- Game Over Overlay -->
         <div id="game-over-overlay">
-            <h1>GAME OVER</h1>
-            <p id="winner-text"></p>
+            <h1 style="color: #ff5252;">GAME OVER</h1>
+            <p id="winner-text" style="font-size: 1.2rem; margin-bottom: 20px;"></p>
             <button class="btn-main" onclick="location.reload()">MAIN MENU</button>
         </div>
     </div>
