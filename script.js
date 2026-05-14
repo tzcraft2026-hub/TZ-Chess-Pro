@@ -1,26 +1,53 @@
 var board = null;
+var board = null;
 var game = new Chess();
 var socket = io();
 var currentMode = null;
 var selectedSquare = null;
 var playerColor = 'w'; 
 
-// Navigation
+// --- Stats Logic (Local Device) ---
+function getStats() {
+    return {
+        wins: parseInt(localStorage.getItem('tz_chess_wins')) || 0,
+        losses: parseInt(localStorage.getItem('tz_chess_losses')) || 0
+    };
+}
+
+function displayStats() {
+    let stats = getStats();
+    document.getElementById('stat-wins').innerText = stats.wins;
+    document.getElementById('stat-losses').innerText = stats.losses;
+    document.getElementById('stat-total').innerText = stats.wins + stats.losses;
+}
+
+function saveStat(type) {
+    let stats = getStats();
+    if (type === 'win') localStorage.setItem('tz_chess_wins', stats.wins + 1);
+    if (type === 'loss') localStorage.setItem('tz_chess_losses', stats.losses + 1);
+    displayStats();
+}
+
+// Load stats on start
+window.onload = displayStats;
+
+// --- Navigation ---
 function showOnlineSetup() {
-    document.getElementById('home-screen').style.display = 'none';
-    document.getElementById('online-setup').style.display = 'flex';
+    $('#home-screen').hide();
+    $('#online-setup').fadeIn().css('display', 'flex');
 }
 
 function joinRoom() {
     var roomId = document.getElementById('room-id').value;
-    if (!roomId) return alert("Room Name dalo!");
-    document.getElementById('online-setup').style.display = 'none';
-    document.getElementById('waiting-screen').style.display = 'flex';
-    document.getElementById('waiting-room-name').innerText = "Room ID: " + roomId;
+    if (!roomId) return alert("Room Name zaroori hai!");
+    $('#online-setup').hide();
+    $('#waiting-screen').fadeIn().css('display', 'flex');
+    $('#waiting-room-name').innerText = "Room: " + roomId;
     socket.emit('joinRoom', roomId);
+    document.getElementById('room-display').innerText = "Connected to Room: " + roomId;
 }
 
-// Socket Events
+// --- Game Events ---
 socket.on('playerRole', function(role) { playerColor = role; });
 socket.on('gameStart', function() { initGame('online'); });
 socket.on('move', function(move) {
@@ -32,7 +59,7 @@ socket.on('move', function(move) {
 function initGame(mode) {
     currentMode = mode;
     $('.screen').hide();
-    $('#game-screen').show();
+    $('#game-screen').fadeIn().css('display', 'flex');
     if (mode === 'bot') playerColor = 'w';
 
     setTimeout(() => {
@@ -48,9 +75,9 @@ function initGame(mode) {
     }, 250);
 }
 
-// Click to Move Logic
+// --- Core Game Logic ---
 function onSquareClick(square) {
-    if (game.game_over()) return; // Stop if game ended[span_3](start_span)[span_3](end_span)
+    if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
 
     if (selectedSquare) {
@@ -72,34 +99,33 @@ function onSquareClick(square) {
     }
 }
 
-function highlight(square) {
-    var piece = game.get(square);
-    if (!piece || (currentMode === 'online' && piece.color !== playerColor)) return;
-    var moves = game.moves({ square: square, verbose: true });
-    if (moves.length === 0) return;
-    selectedSquare = square;
-    $('.dot').remove();
-    moves.forEach(m => $('.square-' + m.to).append('<div class="dot"></div>'));
-}
-
-// Status & Visual Checks
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
     statusEl.className = "";
 
     if (game.in_checkmate()) {
-        var winner = (game.turn() === 'w') ? "Black" : "White";
-        showGameOver(winner + " Wins by Checkmate!");
+        let turn = game.turn();
+        let resultMsg = "";
+        
+        // Stats Update Logic[span_4](start_span)[span_4](end_span)
+        if (turn === playerColor) {
+            saveStat('loss');
+            resultMsg = "You Lost! Checkmate.";
+        } else {
+            saveStat('win');
+            resultMsg = "Victory! You Won.";
+        }
+        showGameOver(resultMsg);
     } else if (game.in_draw()) {
-        showGameOver("Game Draw!");
+        showGameOver("It's a Draw!");
     } else {
-        var turn = (game.turn() === 'w') ? "White" : "Black";
-        statusEl.innerText = turn + " Turn";
+        var turnText = (game.turn() === 'w') ? "White" : "Black";
+        statusEl.innerText = turnText + " Turn";
         if (game.in_check()) {
             statusEl.innerText += " - CHECK!";
             statusEl.classList.add('check');
-            highlightKing(game.turn()); // Highlight King[span_4](start_span)[span_4](end_span)
+            highlightKing(game.turn());
         }
     }
 }
@@ -117,9 +143,19 @@ function highlightKing(color) {
     }
 }
 
+function highlight(square) {
+    var piece = game.get(square);
+    if (!piece || (currentMode === 'online' && piece.color !== playerColor)) return;
+    var moves = game.moves({ square: square, verbose: true });
+    if (moves.length === 0) return;
+    selectedSquare = square;
+    $('.dot').remove();
+    moves.forEach(m => $('.square-' + m.to).append('<div class="dot"></div>'));
+}
+
 function showGameOver(msg) {
     document.getElementById('winner-text').innerText = msg;
-    document.getElementById('game-over-overlay').style.display = 'flex';
+    $('#game-over-overlay').fadeIn().css('display', 'flex');
 }
 
 function makeBotMove() {
@@ -130,7 +166,7 @@ function makeBotMove() {
 }
 
 function resetGame() {
-    if (currentMode === 'online') return alert("Online mode mein reset band hai.");
+    if (currentMode === 'online') return alert("Online mode mein reset disabled hai.");
     game.reset();
     board.start();
     updateStatus();
@@ -139,4 +175,3 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-            
