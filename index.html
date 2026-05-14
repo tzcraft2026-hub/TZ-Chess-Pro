@@ -23,13 +23,15 @@
             <button class="btn-main" onclick="showOnlineSetup()"><i class="fas fa-users"></i> PLAY WITH FRIEND</button>
         </div>
 
-        <!-- Room Setup -->
+        <!-- Online Setup Screen (Updated) -->
         <div id="online-setup" class="screen" style="display: none;">
-            <h2 class="logo">Online Play</h2>
-            <div class="setup-box">
+            <h1 class="logo" style="margin-top: 50px;">Online Play</h1>
+            <div class="setup-box" style="width: 100%; max-width: 350px;">
                 <input type="text" id="room-id" placeholder="Enter Room Name...">
-                <button class="btn-main" onclick="joinRoom()">JOIN / CREATE</button>
-                <button class="btn-back-text" onclick="location.reload()">Back to Menu</button>
+                <button class="btn-main" onclick="joinRoom()" style="margin-top: 10px;">JOIN / CREATE</button>
+                <button class="btn-secondary" onclick="location.reload()">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </button>
             </div>
         </div>
 
@@ -39,7 +41,7 @@
                 <h2 style="color: #ffeb3b;">Waiting for Friend...</h2>
                 <p id="waiting-room-name" style="color: #888;"></p>
                 <div class="spinner"></div>
-                <button class="btn-back-text" onclick="location.reload()">Cancel</button>
+                <button class="btn-secondary" onclick="location.reload()">Cancel</button>
             </div>
         </div>
 
@@ -51,7 +53,7 @@
                 <button class="btn-top-reset" onclick="resetGame()"><i class="fas fa-redo"></i></button>
             </div>
             <div id="myBoard"></div>
-            <div id="room-display" style="color: #666; font-size: 0.8rem; margin-top: 10px;"></div>
+            <div id="room-display" style="color: #666; font-size: 0.8rem; margin-top: 15px;"></div>
         </div>
 
         <!-- Game Over Overlay -->
