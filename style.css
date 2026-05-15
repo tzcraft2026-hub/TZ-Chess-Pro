@@ -35,7 +35,11 @@ body, html {
 .captured-box img {
     height: 28px;
     width: auto;
+    /* Black pieces ko dark background par dikhane ke liye filter */
+    filter: drop-shadow(0px 0px 1px rgba(255, 255, 255, 0.8));
+    margin: 2px;
 }
+
 
 /* Input & Buttons Logic */
 #room-id {
