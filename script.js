@@ -96,13 +96,45 @@ function onSquareClick(square) {
     }
 }
 
+// --- Captured Pieces Rendering ---
+function updateCapturedDisplay() {
+    const history = game.history({ verbose: true });
+    const whiteCaptured = []; // Pieces captured by Black
+    const blackCaptured = []; // Pieces captured by White
+
+    history.forEach(move => {
+        if (move.captured) {
+            // If move color is White, it means White captured a Black piece
+            if (move.color === 'w') {
+                blackCaptured.push('b' + move.captured.toUpperCase());
+            } else {
+                whiteCaptured.push('w' + move.captured.toUpperCase());
+            }
+        }
+    });
+
+    renderPieceImages('captured-top', blackCaptured);
+    renderPieceImages('captured-bottom', whiteCaptured);
+}
+
+function renderPieceImages(elementId, pieces) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = "";
+    pieces.forEach(p => {
+        const img = document.createElement('img');
+        img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
+        container.appendChild(img);
+    });
+}
+
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
     statusEl.className = "";
 
+    updateCapturedDisplay(); // Refreshes the captured lists
+
     if (game.in_checkmate()) {
-        let winner = (game.turn() === 'w') ? "Black" : "White";
         if (game.turn() === playerColor) {
             saveStat('loss');
             showGameOver("You Lost! Checkmate.");
@@ -168,4 +200,3 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-            
