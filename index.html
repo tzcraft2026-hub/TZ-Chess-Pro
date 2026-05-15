@@ -10,7 +10,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Home -->
         <div id="home-screen" class="screen">
             <h1 class="logo">TZ CHESS PRO</h1>
             <div class="stats-container">
@@ -22,7 +21,6 @@
             <button class="btn-main" onclick="showOnlineSetup()"><i class="fas fa-users"></i> PLAY WITH FRIEND</button>
         </div>
 
-        <!-- Online Setup -->
         <div id="online-setup" class="screen" style="display: none;">
             <h1 class="logo" style="margin-top: 50px;">Online Play</h1>
             <input type="text" id="room-id" placeholder="Enter Room Name...">
@@ -30,7 +28,6 @@
             <button class="btn-secondary" onclick="location.reload()">Back to Home</button>
         </div>
 
-        <!-- Waiting -->
         <div id="waiting-screen" class="screen" style="display: none; justify-content: center;">
             <div class="loader-container">
                 <h2 style="color: #ffeb3b;">Waiting...</h2>
@@ -40,18 +37,22 @@
             </div>
         </div>
 
-        <!-- Game -->
         <div id="game-screen" class="screen" style="display: none;">
             <div class="game-header">
                 <button class="btn-exit" onclick="location.reload()"><i class="fas fa-times"></i></button>
                 <div id="status">Your Turn</div>
                 <button class="btn-top-reset" onclick="resetGame()"><i class="fas fa-redo"></i></button>
             </div>
+            
+            <div id="captured-top" class="captured-box"></div>
+            
             <div id="myBoard"></div>
-            <div id="room-display" style="color: #555; font-size: 0.8rem; margin-top: 15px;"></div>
+            
+            <div id="captured-bottom" class="captured-box"></div>
+            
+            <div id="room-display" style="color: #555; font-size: 0.8rem; margin-top: 10px;"></div>
         </div>
 
-        <!-- Game Over Overlay -->
         <div id="game-over-overlay">
             <h1 style="color: #ff5252;">GAME OVER</h1>
             <p id="winner-text" style="font-size: 1.2rem; margin-bottom: 20px;"></p>
