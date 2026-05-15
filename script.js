@@ -114,10 +114,10 @@ function updateCapturedDisplay() {
         }
     });
 
-    // Upar wale box mein Black pieces (White ke liye)
-    renderPieceImages('captured-top', blackCapturedByWhite);
-    // Neeche wale box mein White pieces (Black ke liye)
-    renderPieceImages('captured-bottom', whiteCapturedByBlack);
+    // Neeche wale box mein Black pieces (Black ke liye)
+    renderPieceImages('captured-top', whiteCapturedByBlack);
+    // Uper wale box mein White pieces (White ke liye)
+    renderPieceImages('captured-bottom', blackCapturedByWhite);
 }
 
 function renderPieceImages(elementId, pieces) {
