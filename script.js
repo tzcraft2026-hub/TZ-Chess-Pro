@@ -99,22 +99,25 @@ function onSquareClick(square) {
 // --- Captured Pieces Rendering ---
 function updateCapturedDisplay() {
     const history = game.history({ verbose: true });
-    const whiteCaptured = []; // Pieces captured by Black
-    const blackCaptured = []; // Pieces captured by White
+    const blackCapturedByWhite = []; // White ne jo Black pieces liye
+    const whiteCapturedByBlack = []; // Black ne jo White pieces liye
 
     history.forEach(move => {
         if (move.captured) {
-            // If move color is White, it means White captured a Black piece
             if (move.color === 'w') {
-                blackCaptured.push('b' + move.captured.toUpperCase());
+                // Agar move White ne ki, toh usne Black ka piece maara
+                blackCapturedByWhite.push('b' + move.captured.toUpperCase());
             } else {
-                whiteCaptured.push('w' + move.captured.toUpperCase());
+                // Agar move Black ne ki, toh usne White ka piece maara
+                whiteCapturedByBlack.push('w' + move.captured.toUpperCase());
             }
         }
     });
 
-    renderPieceImages('captured-top', blackCaptured);
-    renderPieceImages('captured-bottom', whiteCaptured);
+    // Upar wale box mein Black pieces (White ke liye)
+    renderPieceImages('captured-top', blackCapturedByWhite);
+    // Neeche wale box mein White pieces (Black ke liye)
+    renderPieceImages('captured-bottom', whiteCapturedByBlack);
 }
 
 function renderPieceImages(elementId, pieces) {
