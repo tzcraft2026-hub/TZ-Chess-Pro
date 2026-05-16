@@ -105,9 +105,9 @@ function updateCapturedDisplay() {
     history.forEach(move => {
         if (move.captured) {
             if (move.color === 'w') {
-                blackCapturedByWhite.push('w' + move.captured.toUpperCase());
+                blackCapturedByWhite.push('b' + move.captured.toUpperCase());
             } else {
-                whiteCapturedByBlack.push('b' + move.captured.toUpperCase());
+                whiteCapturedByBlack.push('w' + move.captured.toUpperCase());
             }
         }
     });
@@ -115,12 +115,12 @@ function updateCapturedDisplay() {
     // --- Dynamic Flipping Logic Based on Player Color ---
     if (playerColor === 'w') {
         // Agar main White hu: Toh upar dushman (Black) ke pieces, aur neeche mere (White) pieces
-        renderPieceImages('captured-top', blackCapturedByWhite);
-        renderPieceImages('captured-bottom', whiteCapturedByBlack);
-    } else {
-        // Agar main Black hu: Toh upar dushman (White) ke pieces, aur neeche mere (Black) pieces
         renderPieceImages('captured-top', whiteCapturedByBlack);
         renderPieceImages('captured-bottom', blackCapturedByWhite);
+    } else {
+        // Agar main Black hu: Toh upar dushman (White) ke pieces, aur neeche mere (Black) pieces
+        renderPieceImages('captured-top', blackCapturedByWhite);
+        renderPieceImages('captured-bottom', whiteCapturedByBlack);
     }
 }
 
