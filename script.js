@@ -105,19 +105,23 @@ function updateCapturedDisplay() {
     history.forEach(move => {
         if (move.captured) {
             if (move.color === 'w') {
-                // Agar move White ne ki, toh usne Black ka piece maara
                 blackCapturedByWhite.push('b' + move.captured.toUpperCase());
             } else {
-                // Agar move Black ne ki, toh usne White ka piece maara
                 whiteCapturedByBlack.push('w' + move.captured.toUpperCase());
             }
         }
     });
 
-    // Neeche wale box mein Black pieces (Black ke liye)
-    renderPieceImages('captured-top', whiteCapturedByBlack);
-    // Uper wale box mein White pieces (White ke liye)
-    renderPieceImages('captured-bottom', blackCapturedByWhite);
+    // --- Dynamic Flipping Logic Based on Player Color ---
+    if (playerColor === 'w') {
+        // Agar main White hu: Toh upar dushman (Black) ke pieces, aur neeche mere (White) pieces
+        renderPieceImages('captured-top', blackCapturedByWhite);
+        renderPieceImages('captured-bottom', whiteCapturedByBlack);
+    } else {
+        // Agar main Black hu: Toh upar dushman (White) ke pieces, aur neeche mere (Black) pieces
+        renderPieceImages('captured-top', whiteCapturedByBlack);
+        renderPieceImages('captured-bottom', blackCapturedByWhite);
+    }
 }
 
 function renderPieceImages(elementId, pieces) {
