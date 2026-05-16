@@ -105,9 +105,9 @@ function updateCapturedDisplay() {
     history.forEach(move => {
         if (move.captured) {
             if (move.color === 'w') {
-                blackCapturedByWhite.push('b' + move.captured.toUpperCase());
+                blackCapturedByWhite.push('w' + move.captured.toUpperCase());
             } else {
-                whiteCapturedByBlack.push('w' + move.captured.toUpperCase());
+                whiteCapturedByBlack.push('b' + move.captured.toUpperCase());
             }
         }
     });
