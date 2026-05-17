@@ -1,62 +1,9 @@
-// =================================================================
-// TZ CHESS PRO - ULTIMATE BALANCED BOT AI (WINNING ORIENTED)
-// =================================================================
-
-var board = null;
+Var board = null;
 var game = new Chess();
 var socket = io();
 var currentMode = null;
 var selectedSquare = null;
 var playerColor = 'w'; 
-
-// Bot (Black) ke liye Pieces ki Matrix Value (Evaluation)
-const PIECE_VALUES = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 9000 };
-
-const PAWN_EVAL = [
-    [0,  0,  0,  0,  0,  0,  0,  0],
-    [5,  5,  5,  5,  5,  5,  5,  5],
-    [1,  1,  2,  3,  3,  2,  1,  1],
-    [0.5,  0.5,  1,  2.5,  2.5,  1,  0.5,  0.5],
-    [0,  0,  0,  2,  2,  0,  0,  0],
-    [0.5, -0.5, -1,  0,  0, -1, -0.5,  0.5],
-    [0.5,  1, 1,  -2, -2,  1,  1,  0.5],
-    [0,  0,  0,  0,  0,  0,  0,  0]
-];
-
-const KNIGHT_EVAL = [
-    [-5, -4, -3, -3, -3, -3, -4, -5],
-    [-4, -2,  0,  0,  0,  0, -2, -4],
-    [-3,  0,  1,  1.5, 1.5,  1,  0, -3],
-    [-3,  0.5, 1.5,  2,  2, 1.5,  0.5, -3],
-    [-3,  0, 1.5,  2,  2, 1.5,  0, -3],
-    [-3,  0.5,  1,  1.5, 1.5,  1,  0.5, -3],
-    [-4, -2,  0,  0.5,  0.5,  0, -2, -4],
-    [-5, -4, -3, -3, -3, -3, -4, -5]
-];
-
-const BISHOP_EVAL = [
-    [-2, -1, -1, -1, -1, -1, -1, -2],
-    [-1,  0,  0,  0,  0,  0,  0, -1],
-    [-1,  0,  0.5,  1,  1,  0.5,  0, -1],
-    [-1,  0.5,  0.5,  1,  1,  0.5,  0.5, -1],
-    [-1,  0,  1,  1,  1,  1,  0, -1],
-    [-1,  1,  1,  1,  1,  1,  1, -1],
-    [-1,  0.5,  0,  0,  0,  0,  0.5, -1],
-    [-2, -1, -1, -1, -1, -1, -1, -2]
-];
-
-const ROOK_EVAL = [
-    [0,  0,  0,  0,  0,  0,  0,  0],
-    [0.5,  1,  1,  1,  1,  1,  1,  0.5],
-    [-0.5,  0,  0,  0,  0,  0,  0, -0.5],
-    [-0.5,  0,  0,  0,  0,  0,  0, -0.5],
-    [-0.5,  0,  0,  0,  0,  0,  0, -0.5],
-    [-0.5,  0,  0,  0,  0,  0,  0, -0.5],
-    [-0.5,  0,  0,  0,  0,  0,  0, -0.5],
-    [0,  0,  0,  0.5,  0.5,  0,  0,  0]
-];
-
-const EVAL_TABLES = { p: PAWN_EVAL, n: KNIGHT_EVAL, b: BISHOP_EVAL, r: ROOK_EVAL, q: PAWN_EVAL, k: PAWN_EVAL };
 
 // --- Local Stats System ---
 function getStats() {
@@ -88,7 +35,6 @@ function showOnlineSetup() {
     $('#online-setup').fadeIn().css('display', 'flex');
 }
 
-// Room management
 function joinRoom() {
     var roomId = document.getElementById('room-id').value;
     if (!roomId) return alert("Room ID dalo!");
@@ -130,7 +76,6 @@ function initGame(mode) {
 function onSquareClick(square) {
     if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
-    if (currentMode === 'bot' && game.turn() === 'b') return; 
 
     if (selectedSquare) {
         var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
@@ -144,11 +89,7 @@ function onSquareClick(square) {
             selectedSquare = null;
             $('.dot').remove();
             updateStatus();
-            
-            // Yahan se aap bot ki speed handle kar sakte hain (1200ms = 1.2 seconds)
-            if (currentMode === 'bot' && !game.game_over()) {
-                setTimeout(makeBotMove, 1200); 
-            }
+            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 500);
         }
     } else {
         highlight(square);
@@ -158,8 +99,8 @@ function onSquareClick(square) {
 // --- Captured Pieces Rendering ---
 function updateCapturedDisplay() {
     const history = game.history({ verbose: true });
-    const blackCapturedByWhite = []; 
-    const whiteCapturedByBlack = []; 
+    const blackCapturedByWhite = []; // White ne jo Black pieces liye
+    const whiteCapturedByBlack = []; // Black ne jo White pieces liye
 
     history.forEach(move => {
         if (move.captured) {
@@ -171,36 +112,34 @@ function updateCapturedDisplay() {
         }
     });
 
+    // --- Dynamic Flipping Logic Based on Player Color ---
     if (playerColor === 'w') {
-        renderPieceImages('captured-top', blackCapturedByWhite);
-        renderPieceImages('captured-bottom', whiteCapturedByBlack);
-    } else {
+        // Agar main White hu: Toh upar dushman (Black) ke pieces, aur neeche mere (White) pieces
         renderPieceImages('captured-top', whiteCapturedByBlack);
         renderPieceImages('captured-bottom', blackCapturedByWhite);
+    } else {
+        // Agar main Black hu: Toh upar dushman (White) ke pieces, aur neeche mere (Black) pieces
+        renderPieceImages('captured-top', blackCapturedByWhite);
+        renderPieceImages('captured-bottom', whiteCapturedByBlack);
     }
 }
 
 function renderPieceImages(elementId, pieces) {
     const container = document.getElementById(elementId);
-    if (!container) return;
     container.innerHTML = "";
     pieces.forEach(p => {
         const img = document.createElement('img');
         img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
-        img.style.width = '24px';
-        img.style.height = '24px';
-        img.style.margin = '2px';
         container.appendChild(img);
     });
 }
 
 function updateStatus() {
     var statusEl = document.getElementById('status');
-    if (!statusEl) return;
     $('.check-square').removeClass('check-square');
     statusEl.className = "";
 
-    updateCapturedDisplay(); 
+    updateCapturedDisplay(); // Refreshes the captured lists
 
     if (game.in_checkmate()) {
         if (game.turn() === playerColor) {
@@ -239,7 +178,6 @@ function highlightKing(color) {
 function highlight(square) {
     var p = game.get(square);
     if (!p || (currentMode === 'online' && p.color !== playerColor)) return;
-    if (currentMode === 'bot' && p.color === 'b') return; 
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
     selectedSquare = square;
@@ -252,94 +190,9 @@ function showGameOver(msg) {
     $('#game-over-overlay').fadeIn().css('display', 'flex');
 }
 
-// --- 🧠 BALANCED WINNING BOT AI LOGIC (NO DEEP LOOP & STRATEGIC) ---
-
-function evaluateBoard(boardState) {
-    let totalEvaluation = 0;
-    for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 8; j++) {
-            let piece = boardState[i][j];
-            if (piece) {
-                let value = PIECE_VALUES[piece.type];
-                let table = EVAL_TABLES[piece.type];
-                let positionValue = table ? table[i][j] : 0;
-                
-                if (piece.color === 'w') {
-                    totalEvaluation -= (value + positionValue);
-                } else {
-                    totalEvaluation += (value + positionValue);
-                }
-            }
-        }
-    }
-    return totalEvaluation;
-}
-
 function makeBotMove() {
-    let moves = game.moves({ verbose: true });
-    if (moves.length === 0) return;
-
-    let bestMove = null;
-    let bestScore = -Infinity;
-
-    for (let i = 0; i < moves.length; i++) {
-        let move = moves[i];
-        game.move(move);
-        
-        // 1. CRITICAL CHECK: Agar is chal se direct checkmate (jeet) ho rahi hai toh bina soche turant chalo!
-        if (game.in_checkmate()) {
-            game.undo();
-            bestMove = move;
-            break;
-        }
-
-        let score = evaluateBoard(game.board());
-        
-        // 2. SAFETY CHECK: Dekho ki chalne ke baad bot khud toh checkmate nahi ho raha
-        // Hum white ke sabhi moves ko ek baar check karte hain
-        let enemyMoves = game.moves();
-        let safeFromCheckmate = true;
-        for(let j=0; j<enemyMoves.length; j++){
-            game.move(enemyMoves[j]);
-            if(game.in_checkmate()){
-                safeFromCheckmate = false;
-            }
-            game.undo();
-        }
-        
-        game.undo();
-
-        // Agar chal safe nahi hai toh score bohot kam kar do taaki bot ye chal na chale
-        if (!safeFromCheckmate) {
-            score -= 5000;
-        }
-
-        // 3. BALANCED WEIGHTS: Piece capture karne ka points thoda normal kiya taaki laalch na badhe
-        if (move.captured) {
-            score += PIECE_VALUES[move.captured]; // Sirf piece ki actual value jodenge, koi extra bonus nahi
-        }
-        
-        // Agar dushman ko check de raha hai toh thoda bonus
-        if (game.in_check()) {
-            score += 8;
-        }
-
-        if (move.promotion) {
-            score += 90;
-        }
-
-        if (score > bestScore) {
-            bestScore = score;
-            bestMove = move;
-        }
-    }
-
-    // Safety fallback
-    if (!bestMove) bestMove = moves[Math.floor(Math.random() * moves.length)];
-
-    game.move(bestMove);
-    board.position(game.fen());
-    updateStatus();
+    var moves = game.moves();
+    game.move(moves[Math.floor(Math.random() * moves.length)]);
 }
 
 function resetGame() {
@@ -352,4 +205,3 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-    
