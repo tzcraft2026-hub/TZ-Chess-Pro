@@ -1,5 +1,5 @@
 // =================================================================
-// TZ CHESS PRO - COMPLETE SCRIPT.JS WITH ADVANCED BOT & FIXES
+// TZ CHESS PRO - THE ULTIMATE COMPLETE SCRIPT.JS (FAST BOT & FIXED)
 // =================================================================
 
 var board = null;
@@ -129,7 +129,7 @@ function initGame(mode) {
 function onSquareClick(square) {
     if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
-    if (currentMode === 'bot' && game.turn() === 'b') return; // Bot ke turn par click lock
+    if (currentMode === 'bot' && game.turn() === 'b') return; // Bot turn lock
 
     if (selectedSquare) {
         var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
@@ -143,14 +143,15 @@ function onSquareClick(square) {
             selectedSquare = null;
             $('.dot').remove();
             updateStatus();
-            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 400);
+            // Ultra fast execution ke liye timeout sirf 50ms kiya hai
+            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 50);
         }
     } else {
         highlight(square);
     }
 }
 
-// --- Captured Pieces Rendering (Bug Fixed & Synchronized) ---
+// --- Captured Pieces Rendering (Perfect Mirror Fixed) ---
 function updateCapturedDisplay() {
     const history = game.history({ verbose: true });
     const blackCapturedByWhite = []; 
@@ -166,7 +167,7 @@ function updateCapturedDisplay() {
         }
     });
 
-    // Dynamic Mirroring: Saamne wale dushman ke mare pieces hamesha top bar me aayenge
+    // Mirror Setup: Dushman ke pieces hamesha top bar me hi render honge
     if (playerColor === 'w') {
         renderPieceImages('captured-top', blackCapturedByWhite);
         renderPieceImages('captured-bottom', whiteCapturedByBlack);
@@ -235,7 +236,7 @@ function highlightKing(color) {
 function highlight(square) {
     var p = game.get(square);
     if (!p || (currentMode === 'online' && p.color !== playerColor)) return;
-    if (currentMode === 'bot' && p.color === 'b') return; // Bot mode me black pieces highlight nahi honge
+    if (currentMode === 'bot' && p.color === 'b') return; // Bot pieces can't be clicked
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
     selectedSquare = square;
@@ -248,7 +249,7 @@ function showGameOver(msg) {
     $('#game-over-overlay').fadeIn().css('display', 'flex');
 }
 
-// --- 🧠 ADVANCED STRONG BOT AI LOGIC (MINIMAX + PRUNING) ---
+// --- 🧠 ULTRA-FAST INTELLIGENT BOT AI LOGIC (INSTANT & LAG-FREE) ---
 
 function evaluateBoard(boardState) {
     let totalEvaluation = 0;
@@ -271,38 +272,6 @@ function evaluateBoard(boardState) {
     return totalEvaluation;
 }
 
-function minimax(depth, isMaximizing, alpha, beta) {
-    if (depth === 0 || game.game_over()) {
-        return evaluateBoard(game.board());
-    }
-
-    let moves = game.moves({ verbose: true }); 
-    
-    if (isMaximizing) {
-        let bestScore = -Infinity;
-        for (let move of moves) {
-            game.move(move);
-            let score = minimax(depth - 1, false, alpha, beta);
-            game.undo();
-            bestScore = Math.max(bestScore, score);
-            alpha = Math.max(alpha, score);
-            if (beta <= alpha) break; 
-        }
-        return bestScore;
-    } else {
-        let bestScore = Infinity;
-        for (let move of moves) {
-            game.move(move);
-            let score = minimax(depth - 1, true, alpha, beta);
-            game.undo();
-            bestScore = Math.min(bestScore, score);
-            beta = Math.min(beta, score);
-            if (beta <= alpha) break; 
-        }
-        return bestScore;
-    }
-}
-
 function makeBotMove() {
     let moves = game.moves({ verbose: true });
     if (moves.length === 0) return;
@@ -310,11 +279,27 @@ function makeBotMove() {
     let bestMove = null;
     let bestScore = -Infinity;
 
-    // Har move ko investigate karo aur alpha-beta analyze karo
+    // Fast Evaluation: Bin loop loop chalaye instant response dhoondhega
     for (let move of moves) {
         game.move(move);
-        let score = minimax(2, false, -Infinity, Infinity); // Depth 2 computation
+        let score = evaluateBoard(game.board());
+        
+        // Instant checkmate setup preference
+        if (game.in_checkmate()) {
+            game.undo();
+            bestMove = move;
+            break;
+        }
+        
         game.undo();
+
+        // Target captures priority weights
+        if (move.captured) {
+            score += (10 + PIECE_VALUES[move.captured]);
+        }
+        if (move.promotion) {
+            score += 90;
+        }
 
         if (score > bestScore) {
             bestScore = score;
@@ -339,4 +324,4 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-    
+     
