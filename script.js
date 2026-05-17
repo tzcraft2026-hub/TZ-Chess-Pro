@@ -146,7 +146,7 @@ function onSquareClick(square) {
             
             // 🔥 FIXED DELAY: Bot ko chalne ke liye 1200ms (1.2 second) ka normal break diya hai
             if (currentMode === 'bot' && !game.game_over()) {
-                setTimeout(makeBotMove, 1000); 
+                setTimeout(makeBotMove, 800); 
             }
         }
     } else {
