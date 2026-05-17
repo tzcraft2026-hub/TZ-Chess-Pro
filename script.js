@@ -1,5 +1,5 @@
 // =================================================================
-// TZ CHESS PRO - COMPLETE SCRIPT.JS (NATURAL HUMAN-LIKE BOT DELAY)
+// TZ CHESS PRO - ULTIMATE BALANCED BOT AI (WINNING ORIENTED)
 // =================================================================
 
 var board = null;
@@ -88,6 +88,7 @@ function showOnlineSetup() {
     $('#online-setup').fadeIn().css('display', 'flex');
 }
 
+// Room management
 function joinRoom() {
     var roomId = document.getElementById('room-id').value;
     if (!roomId) return alert("Room ID dalo!");
@@ -129,7 +130,7 @@ function initGame(mode) {
 function onSquareClick(square) {
     if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
-    if (currentMode === 'bot' && game.turn() === 'b') return; // Bot turn lock
+    if (currentMode === 'bot' && game.turn() === 'b') return; 
 
     if (selectedSquare) {
         var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
@@ -144,9 +145,9 @@ function onSquareClick(square) {
             $('.dot').remove();
             updateStatus();
             
-            // 🔥 FIXED DELAY: Bot ko chalne ke liye 1200ms (1.2 second) ka normal break diya hai
+            // Yahan se aap bot ki speed handle kar sakte hain (1200ms = 1.2 seconds)
             if (currentMode === 'bot' && !game.game_over()) {
-                setTimeout(makeBotMove, 500); 
+                setTimeout(makeBotMove, 1200); 
             }
         }
     } else {
@@ -171,11 +172,11 @@ function updateCapturedDisplay() {
     });
 
     if (playerColor === 'w') {
-        renderPieceImages('captured-top', whiteCapturedByBlack);
-        renderPieceImages('captured-bottom', blackCapturedByWhite);
-    } else {
         renderPieceImages('captured-top', blackCapturedByWhite);
         renderPieceImages('captured-bottom', whiteCapturedByBlack);
+    } else {
+        renderPieceImages('captured-top', whiteCapturedByBlack);
+        renderPieceImages('captured-bottom', blackCapturedByWhite);
     }
 }
 
@@ -251,7 +252,7 @@ function showGameOver(msg) {
     $('#game-over-overlay').fadeIn().css('display', 'flex');
 }
 
-// --- 🧠 INSTANT MATHEMATICAL BOT AI (WITH NATURAL DELAY INTERFACE) ---
+// --- 🧠 BALANCED WINNING BOT AI LOGIC (NO DEEP LOOP & STRATEGIC) ---
 
 function evaluateBoard(boardState) {
     let totalEvaluation = 0;
@@ -285,19 +286,44 @@ function makeBotMove() {
         let move = moves[i];
         game.move(move);
         
-        let score = evaluateBoard(game.board());
-        
+        // 1. CRITICAL CHECK: Agar is chal se direct checkmate (jeet) ho rahi hai toh bina soche turant chalo!
         if (game.in_checkmate()) {
             game.undo();
             bestMove = move;
             break;
         }
+
+        let score = evaluateBoard(game.board());
+        
+        // 2. SAFETY CHECK: Dekho ki chalne ke baad bot khud toh checkmate nahi ho raha
+        // Hum white ke sabhi moves ko ek baar check karte hain
+        let enemyMoves = game.moves();
+        let safeFromCheckmate = true;
+        for(let j=0; j<enemyMoves.length; j++){
+            game.move(enemyMoves[j]);
+            if(game.in_checkmate()){
+                safeFromCheckmate = false;
+            }
+            game.undo();
+        }
         
         game.undo();
 
-        if (move.captured) {
-            score += (15 + PIECE_VALUES[move.captured]); 
+        // Agar chal safe nahi hai toh score bohot kam kar do taaki bot ye chal na chale
+        if (!safeFromCheckmate) {
+            score -= 5000;
         }
+
+        // 3. BALANCED WEIGHTS: Piece capture karne ka points thoda normal kiya taaki laalch na badhe
+        if (move.captured) {
+            score += PIECE_VALUES[move.captured]; // Sirf piece ki actual value jodenge, koi extra bonus nahi
+        }
+        
+        // Agar dushman ko check de raha hai toh thoda bonus
+        if (game.in_check()) {
+            score += 8;
+        }
+
         if (move.promotion) {
             score += 90;
         }
@@ -308,6 +334,7 @@ function makeBotMove() {
         }
     }
 
+    // Safety fallback
     if (!bestMove) bestMove = moves[Math.floor(Math.random() * moves.length)];
 
     game.move(bestMove);
@@ -325,4 +352,4 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-        
+    
