@@ -1,5 +1,5 @@
 // =================================================================
-// TZ CHESS PRO - THE ULTIMATE COMPLETE SCRIPT.JS (FAST BOT & FIXED)
+// TZ CHESS PRO - COMPLETE SCRIPT.JS (NATURAL HUMAN-LIKE BOT DELAY)
 // =================================================================
 
 var board = null;
@@ -143,15 +143,18 @@ function onSquareClick(square) {
             selectedSquare = null;
             $('.dot').remove();
             updateStatus();
-            // Ultra fast execution ke liye timeout sirf 50ms kiya hai
-            if (currentMode === 'bot' && !game.game_over()) setTimeout(makeBotMove, 50);
+            
+            // 🔥 FIXED DELAY: Bot ko chalne ke liye 1200ms (1.2 second) ka normal break diya hai
+            if (currentMode === 'bot' && !game.game_over()) {
+                setTimeout(makeBotMove, 1200); 
+            }
         }
     } else {
         highlight(square);
     }
 }
 
-// --- Captured Pieces Rendering (Perfect Mirror Fixed) ---
+// --- Captured Pieces Rendering ---
 function updateCapturedDisplay() {
     const history = game.history({ verbose: true });
     const blackCapturedByWhite = []; 
@@ -167,7 +170,6 @@ function updateCapturedDisplay() {
         }
     });
 
-    // Mirror Setup: Dushman ke pieces hamesha top bar me hi render honge
     if (playerColor === 'w') {
         renderPieceImages('captured-top', blackCapturedByWhite);
         renderPieceImages('captured-bottom', whiteCapturedByBlack);
@@ -236,7 +238,7 @@ function highlightKing(color) {
 function highlight(square) {
     var p = game.get(square);
     if (!p || (currentMode === 'online' && p.color !== playerColor)) return;
-    if (currentMode === 'bot' && p.color === 'b') return; // Bot pieces can't be clicked
+    if (currentMode === 'bot' && p.color === 'b') return; 
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
     selectedSquare = square;
@@ -249,7 +251,7 @@ function showGameOver(msg) {
     $('#game-over-overlay').fadeIn().css('display', 'flex');
 }
 
-// --- 🧠 ULTRA-FAST INTELLIGENT BOT AI LOGIC (INSTANT & LAG-FREE) ---
+// --- 🧠 INSTANT MATHEMATICAL BOT AI (WITH NATURAL DELAY INTERFACE) ---
 
 function evaluateBoard(boardState) {
     let totalEvaluation = 0;
@@ -279,12 +281,12 @@ function makeBotMove() {
     let bestMove = null;
     let bestScore = -Infinity;
 
-    // Fast Evaluation: Bin loop loop chalaye instant response dhoondhega
-    for (let move of moves) {
+    for (let i = 0; i < moves.length; i++) {
+        let move = moves[i];
         game.move(move);
+        
         let score = evaluateBoard(game.board());
         
-        // Instant checkmate setup preference
         if (game.in_checkmate()) {
             game.undo();
             bestMove = move;
@@ -293,9 +295,8 @@ function makeBotMove() {
         
         game.undo();
 
-        // Target captures priority weights
         if (move.captured) {
-            score += (10 + PIECE_VALUES[move.captured]);
+            score += (15 + PIECE_VALUES[move.captured]); 
         }
         if (move.promotion) {
             score += 90;
@@ -324,4 +325,4 @@ function resetGame() {
 $(document).on('click', '[class^="square-"]', function() {
     onSquareClick($(this).attr('data-square'));
 });
-     
+        
