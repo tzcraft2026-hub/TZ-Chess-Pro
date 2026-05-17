@@ -146,7 +146,7 @@ function onSquareClick(square) {
             
             // 🔥 FIXED DELAY: Bot ko chalne ke liye 1200ms (1.2 second) ka normal break diya hai
             if (currentMode === 'bot' && !game.game_over()) {
-                setTimeout(makeBotMove, 800); 
+                setTimeout(makeBotMove, 500); 
             }
         }
     } else {
@@ -171,11 +171,11 @@ function updateCapturedDisplay() {
     });
 
     if (playerColor === 'w') {
-        renderPieceImages('captured-top', blackCapturedByWhite);
-        renderPieceImages('captured-bottom', whiteCapturedByBlack);
-    } else {
         renderPieceImages('captured-top', whiteCapturedByBlack);
         renderPieceImages('captured-bottom', blackCapturedByWhite);
+    } else {
+        renderPieceImages('captured-top', blackCapturedByWhite);
+        renderPieceImages('captured-bottom', whiteCapturedByBlack);
     }
 }
 
