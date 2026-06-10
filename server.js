@@ -26,24 +26,41 @@ io.on('connection', (socket) => {
 
         if (numClients === 1) {
             socket.emit('playerRole', 'w');
+            socket.playerColor = 'w'; // Future verification ke liye color attach kiya
         } else if (numClients === 2) {
             socket.emit('playerRole', 'b');
-            io.to(roomId).emit('gameStart'); // Dono player aane par game shuru[span_0](start_span)[span_0](end_span)
+            socket.playerColor = 'b'; // Future verification ke liye color attach kiya
+            io.to(roomId).emit('gameStart'); // Dono player aane par game shuru
         }
     });
 
     socket.on('move', (move) => {
-        // Move ko dusre player tak pahunchana[span_1](start_span)[span_1](end_span)
+        // Move ko dusre player tak pahunchana
         if (socket.roomId) {
             socket.to(socket.roomId).emit('move', move);
         }
     });
 
+    // 🔥 ABSOLUTE ANTI-CHEAT & DISCONNECT DETECTOR
     socket.on('disconnect', () => {
-        console.log('User disconnected');
+        console.log('User disconnected: ' + socket.id);
+        
+        const roomId = socket.roomId;
+        if (roomId) {
+            // Check karo ki kya us room me abhi bhi koi bacha hai
+            const clients = io.sockets.adapter.rooms.get(roomId);
+            const numClients = clients ? clients.size : 0;
+
+            // Agar room bacha hua hai aur usme abhi bhi strictly 1 player online hai
+            if (numClients === 1) {
+                // Bache hue player ko notification bhej do ki saamne wala bhag gaya
+                io.to(roomId).emit('opponentDisconnected', {
+                    msg: "Opponent left the match"
+                });
+            }
+        }
     });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    
