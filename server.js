@@ -5,15 +5,9 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server);
 
-// 🔥 FIX 1: CORS Policy bypass lagaya taaki har naye device me website turant connect ho
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Yeh website aur app dono ko bina block kiye allow karega
-        methods: ["GET", "POST"]
-    }
-});
-
+// Sabse important line jo files ko load karegi
 app.use(express.static(__dirname)); 
 
 app.get('/', (req, res) => {
@@ -24,11 +18,6 @@ io.on('connection', (socket) => {
     console.log('A user connected: ' + socket.id);
 
     socket.on('joinRoom', (roomId) => {
-        // Pehle se agar koi room joda ho toh use saaf karo
-        if(socket.roomId) {
-            socket.leave(socket.roomId);
-        }
-
         socket.join(roomId);
         socket.roomId = roomId;
 
@@ -37,58 +26,24 @@ io.on('connection', (socket) => {
 
         if (numClients === 1) {
             socket.emit('playerRole', 'w');
-            socket.playerColor = 'w';
         } else if (numClients === 2) {
             socket.emit('playerRole', 'b');
-            socket.playerColor = 'b';
-            io.to(roomId).emit('gameStart'); 
+            io.to(roomId).emit('gameStart'); // Dono player aane par game shuru[span_0](start_span)[span_0](end_span)
         }
     });
 
     socket.on('move', (move) => {
+        // Move ko dusre player tak pahunchana[span_1](start_span)[span_1](end_span)
         if (socket.roomId) {
             socket.to(socket.roomId).emit('move', move);
         }
     });
 
-    socket.on('requestRestart', () => {
-        if (socket.roomId) socket.to(socket.roomId).emit('receiveRestartRequest');
-    });
-
-    socket.on('acceptRestart', () => {
-        if (socket.roomId) socket.to(socket.roomId).emit('restartAccepted');
-    });
-
-    socket.on('declineRestart', () => {
-        if (socket.roomId) socket.to(socket.roomId).emit('restartDeclined');
-    });
-
-    // 🔥 FIX 3: Room se completely nikalne ke liye custom leave trigger
-    socket.on('leaveCurrentRoom', () => {
-        const roomId = socket.roomId;
-        if (roomId) {
-            socket.leave(roomId);
-            socket.to(roomId).emit('opponentDisconnected', { msg: "Opponent Left" });
-            socket.roomId = null;
-        }
-    });
-
     socket.on('disconnect', () => {
-        console.log('User disconnected: ' + socket.id);
-        const roomId = socket.roomId;
-        if (roomId) {
-            const clients = io.sockets.adapter.rooms.get(roomId);
-            const numClients = clients ? clients.size : 0;
-            
-            // Agar koi bacha hai toh use jeeta do
-            if (numClients === 1) {
-                io.to(roomId).emit('opponentDisconnected', {
-                    msg: "Opponent left the match"
-                });
-            }
-        }
+        console.log('User disconnected');
     });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    
