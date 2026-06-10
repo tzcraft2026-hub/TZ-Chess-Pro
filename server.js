@@ -5,7 +5,14 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// 🔥 FIX 1: CORS Policy bypass lagaya taaki har naye device me website turant connect ho
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Yeh website aur app dono ko bina block kiye allow karega
+        methods: ["GET", "POST"]
+    }
+});
 
 app.use(express.static(__dirname)); 
 
@@ -17,6 +24,11 @@ io.on('connection', (socket) => {
     console.log('A user connected: ' + socket.id);
 
     socket.on('joinRoom', (roomId) => {
+        // Pehle se agar koi room joda ho toh use saaf karo
+        if(socket.roomId) {
+            socket.leave(socket.roomId);
+        }
+
         socket.join(roomId);
         socket.roomId = roomId;
 
@@ -39,24 +51,25 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 🔥 1. RESTART REQUEST: Sender bhejega, Server opponent ko transfer karega
     socket.on('requestRestart', () => {
-        if (socket.roomId) {
-            socket.to(socket.roomId).emit('receiveRestartRequest');
-        }
+        if (socket.roomId) socket.to(socket.roomId).emit('receiveRestartRequest');
     });
 
-    // 🔥 2. RESTART ACCEPTED: Opponent ne 'RESTART' click kiya
     socket.on('acceptRestart', () => {
-        if (socket.roomId) {
-            socket.to(socket.roomId).emit('restartAccepted');
-        }
+        if (socket.roomId) socket.to(socket.roomId).emit('restartAccepted');
     });
 
-    // 🔥 3. RESTART DECLINED: Opponent ne 'NO' click kiya
     socket.on('declineRestart', () => {
-        if (socket.roomId) {
-            socket.to(socket.roomId).emit('restartDeclined');
+        if (socket.roomId) socket.to(socket.roomId).emit('restartDeclined');
+    });
+
+    // 🔥 FIX 3: Room se completely nikalne ke liye custom leave trigger
+    socket.on('leaveCurrentRoom', () => {
+        const roomId = socket.roomId;
+        if (roomId) {
+            socket.leave(roomId);
+            socket.to(roomId).emit('opponentDisconnected', { msg: "Opponent Left" });
+            socket.roomId = null;
         }
     });
 
@@ -66,7 +79,8 @@ io.on('connection', (socket) => {
         if (roomId) {
             const clients = io.sockets.adapter.rooms.get(roomId);
             const numClients = clients ? clients.size : 0;
-
+            
+            // Agar koi bacha hai toh use jeeta do
             if (numClients === 1) {
                 io.to(roomId).emit('opponentDisconnected', {
                     msg: "Opponent left the match"
@@ -78,4 +92,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-                
