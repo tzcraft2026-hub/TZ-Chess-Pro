@@ -1,20 +1,11 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TZ Chess Pro</title>
-    <meta name="description" content="Play professional online chess on TZ Chess Pro. Created by Trimukh Zone (TZ). Play with friends or bots.">
-    <meta name="keywords" content="TZ Chess Pro, Trimukh Zone, Chess Game, Online Chess, TZ-Craft, TZ Mods">
-    
-    <meta property="og:title" content="TZ Chess Pro">
-    <meta property="og:description" content="Professional Chess Game by Trimukh Zone. Play with friends online or challenge the bot!">
-    <meta property="og:url" content="https://tz-chess-pro.onrender.com">
-    <meta property="og:image" content="https://chessboardjs.com/img/chesspieces/wikipedia/wK.png"> 
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>TZ Chess Pro - Web</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css">
 </head>
     
 <body>
@@ -26,15 +17,20 @@
                 <div class="stat-box"><span>Wins</span><strong id="stat-wins">0</strong></div>
                 <div class="stat-box"><span>Losses</span><strong id="stat-losses">0</strong></div>
             </div>
-            <button class="btn-main" onclick="initGame('bot')"><i class="fas fa-robot"></i> PLAY WITH BOT</button>
-            <button class="btn-main" onclick="showOnlineSetup()"><i class="fas fa-users"></i> PLAY WITH FRIEND</button>
+            <button class="btn-main" onclick="initGame('bot')">🤖 PLAY WITH BOT</button>
+            <button class="btn-main" onclick="initGame('local')">⚔️ PASS & PLAY (2 PLAYER)</button>
+            <button class="btn-main" onclick="showOnlineSetup()">👥 PLAY WITH FRIEND</button>
         </div>
 
         <div id="online-setup" class="screen" style="display: none;">
             <h1 class="logo" style="margin-top: 50px;">Online Play</h1>
+            <div id="server-status-container">
+                <p id="server-status">Connecting to Server...</p>
+                <div id="countdown-timer" style="display: none;">Server starts in: <span id="timer-sec">50</span>s</div>
+            </div>
             <input type="text" id="room-id" placeholder="Enter Room Name...">
-            <button class="btn-main" onclick="joinRoom()">JOIN / CREATE</button>
-            <button class="btn-secondary" onclick="location.reload()">Back to Home</button>
+            <button class="btn-main" id="btn-join" onclick="joinRoom()" disabled style="background: #444;">JOIN / CREATE</button>
+            <button class="btn-secondary" onclick="goBackToHome()">Back to Home</button>
         </div>
 
         <div id="waiting-screen" class="screen" style="display: none; justify-content: center;">
@@ -42,37 +38,55 @@
                 <h2 style="color: #ffeb3b;">Waiting...</h2>
                 <p id="waiting-room-name" style="color: #888;"></p>
                 <div class="spinner"></div>
-                <button class="btn-secondary" onclick="location.reload()">Cancel</button>
+                <button class="btn-secondary" onclick="goBackToHome()">Cancel</button>
             </div>
         </div>
 
         <div id="game-screen" class="screen" style="display: none;">
             <div class="game-header">
-                <button class="btn-exit" onclick="location.reload()"><i class="fas fa-times"></i></button>
+                <div style="width: 30px;"></div>
                 <div id="status">Your Turn</div>
-                <button class="btn-top-reset" onclick="resetGame()"><i class="fas fa-redo"></i></button>
+                
+                <div class="menu-dropdown-container">
+                    <button class="btn-menu-dots" onclick="toggleMenuDropdown()">⋮</button>
+                    <div id="myDropdown" class="dropdown-content">
+                        <button id="menu-undo-btn" onclick="triggerUndo()">↩️ Undo Move</button>
+                        <button onclick="triggerRestart()">🔄 Restart Game</button>
+                        <button onclick="triggerExitMatch()">❌ Exit to Menu</button>
+                    </div>
+                </div>
             </div>
             
             <div id="captured-top" class="captured-box"></div>
-            
             <div id="myBoard"></div>
-            
             <div id="captured-bottom" class="captured-box"></div>
-            
             <div id="room-display" style="color: #555; font-size: 0.8rem; margin-top: 10px;"></div>
         </div>
 
         <div id="game-over-overlay">
             <h1 style="color: #ff5252;">GAME OVER</h1>
-            <p id="winner-text" style="font-size: 1.2rem; margin-bottom: 20px;"></p>
-            <button class="btn-main" onclick="location.reload()">MAIN MENU</button>
+            <p id="winner-text" style="font-size: 1.2rem; margin-bottom: 20px; text-align: center; padding: 0 10px;"></p>
+            <div class="game-over-buttons-row">
+                <button class="btn-main row-btn" id="btn-play-again" onclick="triggerPlayAgain()">🎮 PLAY AGAIN</button>
+                <button class="btn-secondary row-btn" onclick="goBackToHome()" style="color: #fff; border-color: #555; margin-top: 0;">MAIN MENU</button>
+            </div>
+        </div>
+
+        <div id="custom-confirm-box" class="custom-modal">
+            <div class="modal-content">
+                <p id="confirm-message">You want to exit the game?</p>
+                <div class="modal-buttons">
+                    <button class="modal-btn yes" id="confirm-yes-btn">YES</button>
+                    <button class="modal-btn no" id="confirm-no-btn" onclick="closeConfirmModal()">NO</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="lib/jquery-3.5.1.min.js"></script>
+    <script src="lib/chess.min.js"></script>
+    <script src="lib/chessboard-1.0.0.min.js"></script>
     <script src="script.js"></script>
 </body>
-</html>
+    </html>
+    
