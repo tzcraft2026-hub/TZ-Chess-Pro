@@ -39,12 +39,25 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle online features synchronization triggers
-    socket.on('requestUndo', (roomId) => {
-        if(socket.roomId) socket.to(socket.roomId).emit('requestUndo');
+    // 🔥 1. RESTART REQUEST: Sender bhejega, Server opponent ko transfer karega
+    socket.on('requestRestart', () => {
+        if (socket.roomId) {
+            socket.to(socket.roomId).emit('receiveRestartRequest');
+        }
     });
-    socket.on('requestRestart', (roomId) => {
-        if(socket.roomId) socket.to(socket.roomId).emit('requestRestart');
+
+    // 🔥 2. RESTART ACCEPTED: Opponent ne 'RESTART' click kiya
+    socket.on('acceptRestart', () => {
+        if (socket.roomId) {
+            socket.to(socket.roomId).emit('restartAccepted');
+        }
+    });
+
+    // 🔥 3. RESTART DECLINED: Opponent ne 'NO' click kiya
+    socket.on('declineRestart', () => {
+        if (socket.roomId) {
+            socket.to(socket.roomId).emit('restartDeclined');
+        }
     });
 
     socket.on('disconnect', () => {
@@ -55,7 +68,6 @@ io.on('connection', (socket) => {
             const numClients = clients ? clients.size : 0;
 
             if (numClients === 1) {
-                // 🔥 "Opponent Left" logic push transmission channel 
                 io.to(roomId).emit('opponentDisconnected', {
                     msg: "Opponent left the match"
                 });
@@ -66,4 +78,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-                    
+                
