@@ -7,7 +7,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Sabse important line jo files ko load karegi
 app.use(express.static(__dirname)); 
 
 app.get('/', (req, res) => {
@@ -26,34 +25,37 @@ io.on('connection', (socket) => {
 
         if (numClients === 1) {
             socket.emit('playerRole', 'w');
-            socket.playerColor = 'w'; // Future verification ke liye color attach kiya
+            socket.playerColor = 'w';
         } else if (numClients === 2) {
             socket.emit('playerRole', 'b');
-            socket.playerColor = 'b'; // Future verification ke liye color attach kiya
-            io.to(roomId).emit('gameStart'); // Dono player aane par game shuru
+            socket.playerColor = 'b';
+            io.to(roomId).emit('gameStart'); 
         }
     });
 
     socket.on('move', (move) => {
-        // Move ko dusre player tak pahunchana
         if (socket.roomId) {
             socket.to(socket.roomId).emit('move', move);
         }
     });
 
-    // 🔥 ABSOLUTE ANTI-CHEAT & DISCONNECT DETECTOR
+    // Handle online features synchronization triggers
+    socket.on('requestUndo', (roomId) => {
+        if(socket.roomId) socket.to(socket.roomId).emit('requestUndo');
+    });
+    socket.on('requestRestart', (roomId) => {
+        if(socket.roomId) socket.to(socket.roomId).emit('requestRestart');
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected: ' + socket.id);
-        
         const roomId = socket.roomId;
         if (roomId) {
-            // Check karo ki kya us room me abhi bhi koi bacha hai
             const clients = io.sockets.adapter.rooms.get(roomId);
             const numClients = clients ? clients.size : 0;
 
-            // Agar room bacha hua hai aur usme abhi bhi strictly 1 player online hai
             if (numClients === 1) {
-                // Bache hue player ko notification bhej do ki saamne wala bhag gaya
+                // 🔥 "Opponent Left" logic push transmission channel 
                 io.to(roomId).emit('opponentDisconnected', {
                     msg: "Opponent left the match"
                 });
@@ -64,3 +66,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+                    
