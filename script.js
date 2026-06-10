@@ -1,11 +1,15 @@
 var board = null;
 var game = new Chess();
-var socket = io();
+var socket = null;
 var currentMode = null;
 var selectedSquare = null;
 var playerColor = 'w'; 
+var isOnlineReady = false;
+var countdownInterval = null;
+var countdownValue = 50;
+var isScriptLoaded = false;
+var savedRoomId = "";
 
-// --- Local Stats System ---
 function getStats() {
     return {
         wins: parseInt(localStorage.getItem('tz_wins')) || 0,
@@ -27,17 +31,114 @@ function saveStat(type) {
     displayStats();
 }
 
-window.onload = displayStats;
+function tryLoadingSocketEngine() {
+    if (!navigator.onLine || isScriptLoaded) return;
 
-// --- Navigation ---
+    var sScript = document.createElement('script');
+    sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
+    sScript.onload = function() {
+        if (typeof io !== 'undefined') {
+            isScriptLoaded = true;
+            socket = io("https://tz-chess-pro.onrender.com");
+            setupSocketListeners();
+        }
+    };
+    sScript.onerror = function() {
+        isScriptLoaded = false;
+    };
+    document.head.appendChild(sScript);
+}
+
+window.onload = function() {
+    displayStats();
+    tryLoadingSocketEngine();
+    
+    setInterval(function() {
+        if (!isScriptLoaded) {
+            tryLoadingSocketEngine();
+        } else if (socket && !socket.connected && navigator.onLine) {
+            socket.connect();
+        }
+    }, 3000);
+};
+
+function toggleMenuDropdown() {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+window.onclick = function(event) {
+    if (!event.target.matches('.btn-menu-dots')) {
+        var dropdowns = document.getElementsByClassName("dropdown-content");
+        for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+                openDropdown.classList.remove('show');
+            }
+        }
+    }
+}
+
 function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
+    if (socket && socket.connected) {
+        updateServerStatus(true);
+    } else {
+        updateServerStatus(false);
+    }
+}
+
+function updateServerStatus(ready) {
+    var statusText = document.getElementById('server-status');
+    var joinBtn = document.getElementById('btn-join');
+    var timerDiv = document.getElementById('countdown-timer');
+    
+    if (ready) {
+        clearInterval(countdownInterval);
+        countdownInterval = null; 
+        if(timerDiv) timerDiv.style.display = 'none';
+        
+        statusText.innerText = "● Server Connected (Ready)";
+        statusText.style.color = "#8cb302";
+        joinBtn.disabled = false;
+        joinBtn.style.background = "#6b8e23";
+    } else {
+        statusText.innerText = "Please wait... Waking up Render Cloud Server.";
+        statusText.style.color = "#ffeb3b";
+        joinBtn.disabled = true;
+        joinBtn.style.background = "#444";
+        
+        if(timerDiv && !countdownInterval && navigator.onLine) {
+            timerDiv.style.display = 'block';
+            countdownValue = 50;
+            document.getElementById('timer-sec').innerText = countdownValue;
+            
+            countdownInterval = setInterval(function() {
+                if (socket && socket.connected) {
+                    updateServerStatus(true);
+                    return;
+                }
+                countdownValue--;
+                document.getElementById('timer-sec').innerText = countdownValue;
+                
+                if(countdownValue <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    statusText.innerText = "Connecting... (Checking status)";
+                }
+            }, 1000);
+        } else if (!navigator.onLine) {
+            statusText.innerText = "⚠️ Please Turn On Your Internet Connection!";
+            statusText.style.color = "#ff5252";
+            if(timerDiv) timerDiv.style.display = 'none';
+        }
+    }
 }
 
 function joinRoom() {
     var roomId = document.getElementById('room-id').value;
-    if (!roomId) return alert("Room ID dalo!");
+    if (!roomId) return alert("Room ID required!");
+    savedRoomId = roomId; 
     $('.screen').hide();
     $('#waiting-screen').show().css('display', 'flex');
     $('#waiting-room-name').text("Room: " + roomId);
@@ -45,37 +146,210 @@ function joinRoom() {
     document.getElementById('room-display').innerText = "Room: " + roomId;
 }
 
-socket.on('playerRole', function(role) { playerColor = role; });
-socket.on('gameStart', function() { initGame('online'); });
-socket.on('move', function(move) {
-    game.move(move);
-    board.position(game.fen());
-    updateStatus();
-});
+function setupSocketListeners() {
+    socket.on('connect', function() {
+        isOnlineReady = true;
+        if($('#online-setup').is(':visible')) updateServerStatus(true);
+    });
+    socket.on('disconnect', function() {
+        isOnlineReady = false;
+        if($('#online-setup').is(':visible')) updateServerStatus(false);
+    });
+    socket.on('playerRole', function(role) { playerColor = role; });
+    socket.on('gameStart', function() { initGame('online'); });
+    socket.on('move', function(move) {
+        game.move(move);
+        board.position(game.fen());
+        updateStatus();
+    });
+
+    socket.on('opponentDisconnected', function(data) {
+        if (currentMode === 'online' && !game.game_over()) {
+            saveStat('win'); 
+            showGameOver("Opponent Left the Match! You Won. 🎉");
+        }
+    });
+
+    // Handle incoming Restart Request
+    socket.on('receiveRestartRequest', function() {
+        if (currentMode === 'online' && !game.game_over()) {
+            showOnlineRestartModal("Opponent restart the match?", function() {
+                socket.emit('acceptRestart');
+                executeLocalReset();
+            }, function() {
+                socket.emit('declineRestart');
+            });
+        }
+    });
+
+    socket.on('restartAccepted', function() {
+        executeLocalReset();
+    });
+
+    socket.on('restartDeclined', function() {
+        var statusEl = document.getElementById('status');
+        statusEl.innerText = "Opponent can not restart the match";
+        statusEl.style.color = "#ff5252";
+        setTimeout(() => {
+            updateStatus();
+            statusEl.style.color = "#fff";
+        }, 4000);
+    });
+}
 
 function initGame(mode) {
     currentMode = mode;
     $('.screen').hide();
     $('#game-screen').show().css('display', 'flex');
-    if (mode === 'bot') playerColor = 'w';
+    
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+
+    if (mode === 'bot' || mode === 'local') playerColor = 'w';
+
+    // Hide Undo and Play Again if online
+    if (mode === 'online') {
+        document.getElementById('menu-undo-btn').style.display = 'none';
+        document.getElementById('btn-play-again').style.display = 'none';
+    } else {
+        document.getElementById('menu-undo-btn').style.display = 'block';
+        document.getElementById('btn-play-again').style.display = 'block';
+    }
 
     setTimeout(() => {
         if(board) board.destroy();
         board = Chessboard('myBoard', {
-            draggable: false,
+            draggable: false, 
             position: 'start',
             orientation: playerColor === 'w' ? 'white' : 'black',
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+            pieceTheme: 'lib/{piece}.png'
         });
         game.reset();
         updateStatus();
-    }, 250);
+        bindSquareClicks(); 
+    }, 300);
 }
 
-// --- Interaction ---
+// Custom Modal controllers
+function showConfirmModal(message, yesCallback) {
+    document.getElementById('confirm-message').innerText = message;
+    document.getElementById('confirm-yes-btn').innerText = "YES";
+    document.getElementById('confirm-no-btn').innerText = "NO";
+    document.getElementById('custom-confirm-box').style.display = 'flex';
+    
+    document.getElementById('confirm-yes-btn').onclick = function() {
+        closeConfirmModal();
+        yesCallback();
+    };
+    document.getElementById('confirm-no-btn').onclick = function() {
+        closeConfirmModal();
+    };
+}
+
+function showOnlineRestartModal(message, restartCallback, noCallback) {
+    document.getElementById('confirm-message').innerText = message;
+    var yesBtn = document.getElementById('confirm-yes-btn');
+    var noBtn = document.getElementById('confirm-no-btn');
+    
+    yesBtn.innerText = "RESTART";
+    noBtn.innerText = "NO";
+    document.getElementById('custom-confirm-box').style.display = 'flex';
+    
+    yesBtn.onclick = function() {
+        closeConfirmModal();
+        restartCallback();
+    };
+    noBtn.onclick = function() {
+        closeConfirmModal();
+        noCallback();
+    };
+}
+
+function closeConfirmModal() {
+    document.getElementById('custom-confirm-box').style.display = 'none';
+}
+
+function triggerUndo() {
+    if (game.game_over() || currentMode === 'online') return;
+    
+    if (currentMode === 'bot') {
+        game.undo(); game.undo();
+        board.position(game.fen());
+        updateStatus();
+    } else if (currentMode === 'local') {
+        game.undo();
+        board.position(game.fen());
+        updateStatus();
+    }
+}
+
+function triggerRestart() {
+    showConfirmModal("You want to restart the match?", function() {
+        if (currentMode === 'online') {
+            if (socket && socket.connected) {
+                socket.emit('requestRestart');
+            }
+        } else {
+            executeLocalReset();
+        }
+    });
+}
+
+function executeLocalReset() {
+    game.reset();
+    board.start();
+    updateStatus();
+    bindSquareClicks();
+}
+
+function triggerExitMatch() {
+    showConfirmModal("You want to exit the match?", function() {
+        goBackToHome();
+    });
+}
+
+function goBackToHome() {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+    $('#game-over-overlay').hide();
+    $('.screen').hide();
+    $('#home-screen').fadeIn().css('display', 'flex');
+    currentMode = null;
+}
+
+function triggerPlayAgain() {
+    $('#game-over-overlay').hide();
+    if (currentMode === 'bot' || currentMode === 'local') {
+        initGame(currentMode);
+    }
+}
+
+// Browser Tab Close / Exit Controller (Alternative for Back button)
+function triggerWebExit() {
+    showConfirmModal("You want to exit the game?", function() {
+        location.reload(); // Refreshes page to completely reset state on web
+    });
+}
+
+function bindSquareClicks() {
+    $(document).off('click touchend', '[class^="square-"]');
+    $(document).on('click touchend', '[class^="square-"]', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var square = $(this).attr('data-square');
+        if (!square) {
+            var classes = $(this).attr('class').split(' ');
+            var sqClass = classes.find(c => c.indexOf('square-') === 0);
+            if (sqClass) square = sqClass.split('-')[1];
+        }
+        if (square) onSquareClick(square);
+    });
+}
+
 function onSquareClick(square) {
     if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
+    if (currentMode === 'bot' && game.turn() === 'b') return;
 
     if (selectedSquare) {
         var move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
@@ -96,29 +370,20 @@ function onSquareClick(square) {
     }
 }
 
-// --- Captured Pieces Rendering ---
 function updateCapturedDisplay() {
     const history = game.history({ verbose: true });
-    const blackCapturedByWhite = []; // White ne jo Black pieces liye
-    const whiteCapturedByBlack = []; // Black ne jo White pieces liye
-
+    const blackCapturedByWhite = [];
+    const whiteCapturedByBlack = [];
     history.forEach(move => {
         if (move.captured) {
-            if (move.color === 'w') {
-                blackCapturedByWhite.push('b' + move.captured.toUpperCase());
-            } else {
-                whiteCapturedByBlack.push('w' + move.captured.toUpperCase());
-            }
+            if (move.color === 'w') blackCapturedByWhite.push('b' + move.captured.toUpperCase());
+            else whiteCapturedByBlack.push('w' + move.captured.toUpperCase());
         }
     });
-
-    // --- Dynamic Flipping Logic Based on Player Color ---
-    if (playerColor === 'w') {
-        // Agar main White hu: Toh upar dushman (Black) ke pieces, aur neeche mere (White) pieces
+    if (currentMode === 'local' || playerColor === 'w') {
         renderPieceImages('captured-top', whiteCapturedByBlack);
         renderPieceImages('captured-bottom', blackCapturedByWhite);
     } else {
-        // Agar main Black hu: Toh upar dushman (White) ke pieces, aur neeche mere (Black) pieces
         renderPieceImages('captured-top', blackCapturedByWhite);
         renderPieceImages('captured-bottom', whiteCapturedByBlack);
     }
@@ -129,7 +394,7 @@ function renderPieceImages(elementId, pieces) {
     container.innerHTML = "";
     pieces.forEach(p => {
         const img = document.createElement('img');
-        img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
+        img.src = `lib/${p}.png`;
         container.appendChild(img);
     });
 }
@@ -138,16 +403,15 @@ function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
     statusEl.className = "";
-
-    updateCapturedDisplay(); // Refreshes the captured lists
+    updateCapturedDisplay();
 
     if (game.in_checkmate()) {
-        if (game.turn() === playerColor) {
-            saveStat('loss');
-            showGameOver("You Lost! Checkmate.");
+        if (currentMode === 'local') {
+            var winner = (game.turn() === 'w') ? "Black" : "White";
+            showGameOver("Checkmate! " + winner + " Wins.");
         } else {
-            saveStat('win');
-            showGameOver("Victory! You Won.");
+            if (game.turn() === playerColor) { saveStat('loss'); showGameOver("You Lost! Checkmate."); }
+            else { saveStat('win'); showGameOver("Victory! You Won."); }
         }
     } else if (game.in_draw()) {
         showGameOver("It's a Draw!");
@@ -175,9 +439,14 @@ function highlightKing(color) {
     }
 }
 
+// Keep core highlighting and random movement systems active
 function highlight(square) {
     var p = game.get(square);
-    if (!p || (currentMode === 'online' && p.color !== playerColor)) return;
+    if (!p) return;
+    if (currentMode === 'online' && p.color !== playerColor) return;
+    if (currentMode === 'bot' && p.color === 'b') return;
+    if (currentMode === 'local' && p.color !== game.turn()) return;
+
     var moves = game.moves({ square: square, verbose: true });
     if (moves.length === 0) return;
     selectedSquare = square;
@@ -192,18 +461,9 @@ function showGameOver(msg) {
 
 function makeBotMove() {
     var moves = game.moves();
+    if (moves.length === 0) return;
     game.move(moves[Math.floor(Math.random() * moves.length)]);
     board.position(game.fen());
     updateStatus();
-}
-
-function resetGame() {
-    if (currentMode === 'online') return alert("Online mode mein reset disabled hai.");
-    game.reset();
-    board.start();
-    updateStatus();
-}
-
-$(document).on('click', '[class^="square-"]', function() {
-    onSquareClick($(this).attr('data-square'));
-});
+    bindSquareClicks(); 
+            }
