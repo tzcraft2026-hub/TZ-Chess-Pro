@@ -62,6 +62,13 @@ window.onload = function() {
     }, 3000);
 };
 
+// 🔥 FIX 2: Agar user website ka tab close karega ya refresh karega, toh opponent ko turant 'Opponent Left' chala jayega
+window.onbeforeunload = function() {
+    if (socket && socket.connected && currentMode === 'online') {
+        socket.emit('leaveCurrentRoom');
+    }
+};
+
 function toggleMenuDropdown() {
     document.getElementById("myDropdown").classList.toggle("show");
 }
@@ -81,6 +88,8 @@ window.onclick = function(event) {
 function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
+    // Har baar naye sir se room setup khulne par input box khali milega
+    document.getElementById('room-id').value = ""; 
     if (socket && socket.connected) {
         updateServerStatus(true);
     } else {
@@ -170,7 +179,6 @@ function setupSocketListeners() {
         }
     });
 
-    // Handle incoming Restart Request
     socket.on('receiveRestartRequest', function() {
         if (currentMode === 'online' && !game.game_over()) {
             showOnlineRestartModal("Opponent restart the match?", function() {
@@ -207,7 +215,6 @@ function initGame(mode) {
 
     if (mode === 'bot' || mode === 'local') playerColor = 'w';
 
-    // Hide Undo and Play Again if online
     if (mode === 'online') {
         document.getElementById('menu-undo-btn').style.display = 'none';
         document.getElementById('btn-play-again').style.display = 'none';
@@ -230,7 +237,6 @@ function initGame(mode) {
     }, 300);
 }
 
-// Custom Modal controllers
 function showConfirmModal(message, yesCallback) {
     document.getElementById('confirm-message').innerText = message;
     document.getElementById('confirm-yes-btn').innerText = "YES";
@@ -304,6 +310,10 @@ function executeLocalReset() {
 
 function triggerExitMatch() {
     showConfirmModal("You want to exit the match?", function() {
+        // 🔥 FIX 3: Menu par jaane se pehle server ko notify karega ki hum room leave kar rahe hain
+        if (currentMode === 'online' && socket && socket.connected) {
+            socket.emit('leaveCurrentRoom');
+        }
         goBackToHome();
     });
 }
@@ -315,6 +325,7 @@ function goBackToHome() {
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
     currentMode = null;
+    savedRoomId = ""; // Clear state variables data 
 }
 
 function triggerPlayAgain() {
@@ -324,11 +335,20 @@ function triggerPlayAgain() {
     }
 }
 
-// Browser Tab Close / Exit Controller (Alternative for Back button)
-function triggerWebExit() {
-    showConfirmModal("You want to exit the game?", function() {
-        location.reload(); // Refreshes page to completely reset state on web
-    });
+function handleAndroidBackButton() {
+    if ($('#game-screen').is(':visible')) {
+        triggerExitMatch();
+    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible')) {
+        goBackToHome();
+    } else if ($('#home-screen').is(':visible')) {
+        showConfirmModal("You want to exit the game?", function() {
+            if (typeof AndroidInterface !== 'undefined' && AndroidInterface.exitApp) {
+                AndroidInterface.exitApp();
+            } else {
+                location.reload(); 
+            }
+        });
+    }
 }
 
 function bindSquareClicks() {
@@ -399,6 +419,7 @@ function renderPieceImages(elementId, pieces) {
     });
 }
 
+// Keep core evaluation systems intact 
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
@@ -439,7 +460,6 @@ function highlightKing(color) {
     }
 }
 
-// Keep core highlighting and random movement systems active
 function highlight(square) {
     var p = game.get(square);
     if (!p) return;
@@ -466,4 +486,5 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-            }
+}
+    
