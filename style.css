@@ -5,8 +5,38 @@ body, html {
     overflow: hidden;
 }
 .screen { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100vh; padding: 20px; }
-#home-screen { padding-top: 8vh; }
+#home-screen { padding-top: 4vh; }
 .logo { color: #8cb302; font-size: 2.2rem; margin-bottom: 30px; font-weight: bold; }
+
+/* Dynamic Header Utility Bar Settings */
+.home-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 350px;
+    margin-bottom: 15px;
+    padding: 0 5px;
+}
+.btn-settings-gear {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s;
+}
+.btn-settings-gear:active { color: #fff; }
+#profile-bar {
+    color: #8cb302;
+    font-size: 0.9rem;
+    font-weight: bold;
+    background: #1e1e1e;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #2d2d2d;
+}
 
 #server-status-container { text-align: center; background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 20px; width: 100%; max-width: 350px; border: 1px solid #2d2d2d; }
 #countdown-timer { margin-top: 8px; font-size: 1.1rem; font-weight: bold; color: #ff5252; }
@@ -31,15 +61,25 @@ body, html {
 #status { font-weight: bold; color: #fff; flex-grow: 1; text-align: center; font-size: 1.1rem; }
 #status.check { color: #ffeb3b; }
 
+/* Layout Droppers Rules Configuration */
+.settings-menu-container { position: relative; display: inline-block; }
 .menu-dropdown-container { position: relative; display: inline-block; }
-.dropdown-content { display: none; position: absolute; right: 0; background-color: #1e1e1e; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 8px; z-index: 1001; overflow: hidden; }
+.dropdown-content { display: none; position: absolute; background-color: #1e1e1e; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 8px; z-index: 1001; overflow: hidden; }
 .dropdown-content button { color: white; padding: 12px 16px; text-decoration: none; display: block; background: transparent; border: none; width: 100%; text-align: left; font-size: 0.95rem; cursor: pointer; }
 .dropdown-content button:active { background-color: #2d2d2d; }
 .show { display: block; }
 
+/* Left aligned floating configuration for Settings Dropdown */
+.settings-dropdown { left: 0; min-width: 190px; margin-top: 5px; }
+
 #myBoard { width: 92vw; max-width: 400px; border: 4px solid #2c2c2c; border-radius: 8px; position: relative; }
 .check-square { box-shadow: inset 0 0 15px 5px rgba(255, 0, 0, 0.8) !important; }
 .dot { height: 14px; width: 14px; background: rgba(255, 82, 82, 0.6); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 999; }
+
+/* Auth Layout Sheet Design */
+.auth-box { width: 100%; max-width: 350px; background: #1e1e1e; padding: 25px; border-radius: 15px; border: 1px solid #333; display: flex; flex-direction: column; }
+.auth-box input { width: 100%; padding: 14px; background: #121212; border: 1px solid #444; border-radius: 8px; color: white; font-size: 0.95rem; outline: none; margin-bottom: 15px; }
+.auth-box input:focus { border-color: #8cb302; }
 
 .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 9999; }
 .modal-content { background: #1e1e1e; border: 2px solid #333; border-radius: 15px; width: 85%; max-width: 320px; padding: 20px; text-align: center; }
@@ -49,21 +89,8 @@ body, html {
 .modal-btn.no { background: #444; color: white; }
 
 #game-over-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-
-/* Horizontal align row configs */
-.game-over-buttons-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    max-width: 360px;
-    padding: 0 10px;
-}
-.row-btn {
-    flex: 1;
-    margin-bottom: 0 !important;
-}
+.game-over-buttons-row { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; max-width: 360px; padding: 0 10px; }
+.row-btn { flex: 1; margin-bottom: 0 !important; }
 
 .spinner { border: 4px solid #222; border-left-color: #8cb302; width: 40px; height: 40px; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
