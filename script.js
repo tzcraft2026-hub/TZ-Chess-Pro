@@ -10,25 +10,35 @@ var countdownValue = 50;
 var isScriptLoaded = false;
 var savedRoomId = "";
 
-function getStats() {
-    return {
-        wins: parseInt(localStorage.getItem('tz_wins')) || 0,
-        losses: parseInt(localStorage.getItem('tz_losses')) || 0
-    };
-}
+// GLOBAL SESSION STATE SYSTEM
+var isLoggedIn = false;
+var currentUsername = "";
+var cloudWins = 0;
+var cloudLosses = 0;
 
 function displayStats() {
-    let s = getStats();
-    document.getElementById('stat-wins').innerText = s.wins;
-    document.getElementById('stat-losses').innerText = s.losses;
-    document.getElementById('stat-total').innerText = s.wins + s.losses;
+    var authBtn = document.getElementById('settings-auth-action-btn');
+    if(isLoggedIn) {
+        document.getElementById('stat-wins').innerText = cloudWins;
+        document.getElementById('stat-losses').innerText = cloudLosses;
+        document.getElementById('stat-total').innerText = cloudWins + cloudLosses;
+        document.getElementById('profile-bar').innerText = "👤 " + currentUsername.toUpperCase();
+        
+        // Settings menu button text change dynamically
+        if(authBtn) authBtn.innerText = "🚪 Log Off / Sign Out";
+    } else {
+        document.getElementById('stat-wins').innerText = "0";
+        document.getElementById('stat-losses').innerText = "0";
+        document.getElementById('stat-total').innerText = "0";
+        document.getElementById('profile-bar').innerText = "⚠️ Guest Mode";
+        
+        if(authBtn) authBtn.innerText = "🔑 Sign Up / Log In";
+    }
 }
 
 function saveStat(type) {
-    let s = getStats();
-    if (type === 'win') localStorage.setItem('tz_wins', s.wins + 1);
-    else if (type === 'loss') localStorage.setItem('tz_losses', s.losses + 1);
-    displayStats();
+    if (!isLoggedIn) return; 
+    socket.emit('cloudUpdateStats', { username: currentUsername, type: type });
 }
 
 function tryLoadingSocketEngine() {
@@ -62,25 +72,93 @@ window.onload = function() {
     }, 3000);
 };
 
-// 🔥 FIX 2: Agar user website ka tab close karega ya refresh karega, toh opponent ko turant 'Opponent Left' chala jayega
 window.onbeforeunload = function() {
     if (socket && socket.connected && currentMode === 'online') {
         socket.emit('leaveCurrentRoom');
     }
 };
 
+// SETTINGS UTILITY CONTROLLER
+function toggleSettingsDropdown() {
+    document.getElementById("settingsDropdown").classList.toggle("show");
+}
+
+function handleSettingsAuthTrigger() {
+    document.getElementById("settingsDropdown").classList.remove("show");
+    if(isLoggedIn) {
+        // Log Off Process
+        showConfirmModal("Are you sure you want to sign off?", function() {
+            isLoggedIn = false;
+            currentUsername = "";
+            cloudWins = 0;
+            cloudLosses = 0;
+            displayStats();
+            alert("Logged out successfully!");
+        });
+    } else {
+        // Open Auth Screen smoothly
+        $('.screen').hide();
+        $('#auth-header').text("Sign up/log in first to play Friend Mode");
+        $('#auth-error-msg').hide();
+        $('#auth-screen').fadeIn().css('display', 'flex');
+    }
+}
+
+function checkFriendModeTrigger() {
+    if (isLoggedIn) {
+        showOnlineSetup();
+    } else {
+        $('.screen').hide();
+        $('#auth-header').text("Sign up/log in first to play Friend Mode");
+        $('#auth-error-msg').hide();
+        $('#auth-screen').fadeIn().css('display', 'flex');
+    }
+}
+
+function submitAuth(action) {
+    var user = document.getElementById('auth-username').value.trim();
+    var pass = document.getElementById('auth-password').value;
+    var errEl = document.getElementById('auth-error-msg');
+
+    if (user.length < 6 || user.length > 20) {
+        errEl.innerText = "Username must be 6 to 20 characters!";
+        $(errEl).show();
+        return;
+    }
+    if (pass.length < 8) {
+        errEl.innerText = "Password must be at least 8 characters long!";
+        $(errEl).show();
+        return;
+    }
+
+    $(errEl).hide();
+    if(socket && socket.connected) {
+        if(action === 'signup') socket.emit('authSignUp', { username: user, password: pass });
+        if(action === 'login') socket.emit('authLogin', { username: user, password: pass });
+    } else {
+        alert("Server network unavailable! Check connection.");
+    }
+}
+
 function toggleMenuDropdown() {
     document.getElementById("myDropdown").classList.toggle("show");
 }
 
+// Global click click listener to hide active menus
 window.onclick = function(event) {
     if (!event.target.matches('.btn-menu-dots')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         for (var i = 0; i < dropdowns.length; i++) {
             var openDropdown = dropdowns[i];
-            if (openDropdown.classList.contains('show')) {
+            if (openDropdown.classList.contains('show') && !openDropdown.classList.contains('settings-dropdown')) {
                 openDropdown.classList.remove('show');
             }
+        }
+    }
+    if (!event.target.matches('.btn-settings-gear')) {
+        var settingsDrop = document.getElementById("settingsDropdown");
+        if(settingsDrop && settingsDrop.classList.contains('show')) {
+            settingsDrop.classList.remove('show');
         }
     }
 }
@@ -88,7 +166,6 @@ window.onclick = function(event) {
 function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
-    // Har baar naye sir se room setup khulne par input box khali milega
     document.getElementById('room-id').value = ""; 
     if (socket && socket.connected) {
         updateServerStatus(true);
@@ -164,6 +241,29 @@ function setupSocketListeners() {
         isOnlineReady = false;
         if($('#online-setup').is(':visible')) updateServerStatus(false);
     });
+
+    socket.on('authResponse', function(res) {
+        if(res.success) {
+            isLoggedIn = true;
+            currentUsername = res.username;
+            cloudWins = res.wins;
+            cloudLosses = res.losses;
+            displayStats();
+            alert(res.msg);
+            showOnlineSetup(); 
+        } else {
+            var errEl = document.getElementById('auth-error-msg');
+            errEl.innerText = res.msg;
+            $(errEl).show();
+        }
+    });
+
+    socket.on('statsSynced', function(data) {
+        cloudWins = data.wins;
+        cloudLosses = data.losses;
+        displayStats();
+    });
+
     socket.on('playerRole', function(role) { playerColor = role; });
     socket.on('gameStart', function() { initGame('online'); });
     socket.on('move', function(move) {
@@ -190,9 +290,7 @@ function setupSocketListeners() {
         }
     });
 
-    socket.on('restartAccepted', function() {
-        executeLocalReset();
-    });
+    socket.on('restartAccepted', function() { executeLocalReset(); });
 
     socket.on('restartDeclined', function() {
         var statusEl = document.getElementById('status');
@@ -277,7 +375,6 @@ function closeConfirmModal() {
 
 function triggerUndo() {
     if (game.game_over() || currentMode === 'online') return;
-    
     if (currentMode === 'bot') {
         game.undo(); game.undo();
         board.position(game.fen());
@@ -292,9 +389,7 @@ function triggerUndo() {
 function triggerRestart() {
     showConfirmModal("You want to restart the match?", function() {
         if (currentMode === 'online') {
-            if (socket && socket.connected) {
-                socket.emit('requestRestart');
-            }
+            if (socket && socket.connected) socket.emit('requestRestart');
         } else {
             executeLocalReset();
         }
@@ -310,7 +405,6 @@ function executeLocalReset() {
 
 function triggerExitMatch() {
     showConfirmModal("You want to exit the match?", function() {
-        // 🔥 FIX 3: Menu par jaane se pehle server ko notify karega ki hum room leave kar rahe hain
         if (currentMode === 'online' && socket && socket.connected) {
             socket.emit('leaveCurrentRoom');
         }
@@ -325,7 +419,8 @@ function goBackToHome() {
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
     currentMode = null;
-    savedRoomId = ""; // Clear state variables data 
+    savedRoomId = ""; 
+    displayStats(); 
 }
 
 function triggerPlayAgain() {
@@ -338,7 +433,7 @@ function triggerPlayAgain() {
 function handleAndroidBackButton() {
     if ($('#game-screen').is(':visible')) {
         triggerExitMatch();
-    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible')) {
+    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible') || $('#auth-screen').is(':visible')) {
         goBackToHome();
     } else if ($('#home-screen').is(':visible')) {
         showConfirmModal("You want to exit the game?", function() {
@@ -366,6 +461,7 @@ function bindSquareClicks() {
     });
 }
 
+// Chess logic modules remain uniformly fully functional
 function onSquareClick(square) {
     if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
@@ -419,7 +515,6 @@ function renderPieceImages(elementId, pieces) {
     });
 }
 
-// Keep core evaluation systems intact 
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
@@ -486,5 +581,5 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-}
-    
+                }
+              
