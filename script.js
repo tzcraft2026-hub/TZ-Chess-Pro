@@ -10,29 +10,29 @@ var countdownValue = 50;
 var isScriptLoaded = false;
 var savedRoomId = "";
 
-// GLOBAL SESSION STATE SYSTEM
+// SESSION STATE SYSTEM
 var isLoggedIn = false;
 var currentUsername = "";
 var cloudWins = 0;
 var cloudLosses = 0;
 
+// Dynamic Auth Mode Controller (States: 'signup' or 'login')
+var currentAuthMode = 'signup'; 
+
 function displayStats() {
-    var authBtn = document.getElementById('settings-auth-action-btn');
+    var authMenuBtn = document.getElementById('settings-auth-action-btn');
     if(isLoggedIn) {
         document.getElementById('stat-wins').innerText = cloudWins;
         document.getElementById('stat-losses').innerText = cloudLosses;
         document.getElementById('stat-total').innerText = cloudWins + cloudLosses;
-        document.getElementById('profile-bar').innerText = "👤 " + currentUsername.toUpperCase();
         
-        // Settings menu button text change dynamically
-        if(authBtn) authBtn.innerText = "🚪 Log Off / Sign Out";
+        if(authMenuBtn) authMenuBtn.innerText = "🚪 Log Off / Sign Out";
     } else {
         document.getElementById('stat-wins').innerText = "0";
         document.getElementById('stat-losses').innerText = "0";
         document.getElementById('stat-total').innerText = "0";
-        document.getElementById('profile-bar').innerText = "⚠️ Guest Mode";
         
-        if(authBtn) authBtn.innerText = "🔑 Sign Up / Log In";
+        if(authMenuBtn) authMenuBtn.innerText = "🔑 Sign Up / Log In";
     }
 }
 
@@ -78,7 +78,6 @@ window.onbeforeunload = function() {
     }
 };
 
-// SETTINGS UTILITY CONTROLLER
 function toggleSettingsDropdown() {
     document.getElementById("settingsDropdown").classList.toggle("show");
 }
@@ -86,7 +85,6 @@ function toggleSettingsDropdown() {
 function handleSettingsAuthTrigger() {
     document.getElementById("settingsDropdown").classList.remove("show");
     if(isLoggedIn) {
-        // Log Off Process
         showConfirmModal("Are you sure you want to sign off?", function() {
             isLoggedIn = false;
             currentUsername = "";
@@ -96,26 +94,45 @@ function handleSettingsAuthTrigger() {
             alert("Logged out successfully!");
         });
     } else {
-        // Open Auth Screen smoothly
         $('.screen').hide();
-        $('#auth-header').text("Sign up/log in first to play Friend Mode");
+        switchAuthMode('signup'); // Default trigger
         $('#auth-error-msg').hide();
         $('#auth-screen').fadeIn().css('display', 'flex');
     }
 }
+
+// 🔥 AUTHENTICATION LOGIC FIXED & DYNAMIC SINGLE BUTTON SYSTEM
 
 function checkFriendModeTrigger() {
     if (isLoggedIn) {
         showOnlineSetup();
     } else {
         $('.screen').hide();
-        $('#auth-header').text("Sign up/log in first to play Friend Mode");
+        switchAuthMode('signup'); 
         $('#auth-error-msg').hide();
         $('#auth-screen').fadeIn().css('display', 'flex');
     }
 }
 
-function submitAuth(action) {
+// dynamic dynamic switcher loop
+function switchAuthMode(mode) {
+    currentAuthMode = mode;
+    var submitBtn = document.getElementById('auth-submit-btn');
+    var switchLink = document.getElementById('auth-switch-link-container');
+    
+    if (mode === 'login') {
+        submitBtn.innerText = "LOG IN";
+        submitBtn.style.background = "#6b8e23";
+        switchLink.innerHTML = 'have not any account? <span onclick="switchAuthMode(\'signup\')">Sign Up</span>';
+    } else {
+        submitBtn.innerText = "CREATE NEW ACCOUNT";
+        submitBtn.style.background = "#0288d1";
+        switchLink.innerHTML = 'Already have an account? <span onclick="switchAuthMode(\'login\')">Log In</span>';
+    }
+}
+
+// Dispatch correct action from single button
+function performAuthSubmit() {
     var user = document.getElementById('auth-username').value.trim();
     var pass = document.getElementById('auth-password').value;
     var errEl = document.getElementById('auth-error-msg');
@@ -133,8 +150,9 @@ function submitAuth(action) {
 
     $(errEl).hide();
     if(socket && socket.connected) {
-        if(action === 'signup') socket.emit('authSignUp', { username: user, password: pass });
-        if(action === 'login') socket.emit('authLogin', { username: user, password: pass });
+        // dynamic dispatch data packet channel
+        if(currentAuthMode === 'signup') socket.emit('authSignUp', { username: user, password: pass });
+        if(currentAuthMode === 'login') socket.emit('authLogin', { username: user, password: pass });
     } else {
         alert("Server network unavailable! Check connection.");
     }
@@ -144,7 +162,6 @@ function toggleMenuDropdown() {
     document.getElementById("myDropdown").classList.toggle("show");
 }
 
-// Global click click listener to hide active menus
 window.onclick = function(event) {
     if (!event.target.matches('.btn-menu-dots')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
@@ -242,6 +259,7 @@ function setupSocketListeners() {
         if($('#online-setup').is(':visible')) updateServerStatus(false);
     });
 
+    // 🔥 HANDLE SECURE RESPONSE TO FRONTEND (SIGNUP / LOGIN FIXED)
     socket.on('authResponse', function(res) {
         if(res.success) {
             isLoggedIn = true;
@@ -252,9 +270,12 @@ function setupSocketListeners() {
             alert(res.msg);
             showOnlineSetup(); 
         } else {
+            // dynamic dynamic render
             var errEl = document.getElementById('auth-error-msg');
             errEl.innerText = res.msg;
             $(errEl).show();
+            
+            submitBtn.disabled = false; // re enable input
         }
     });
 
@@ -461,7 +482,6 @@ function bindSquareClicks() {
     });
 }
 
-// Chess logic modules remain uniformly fully functional
 function onSquareClick(square) {
     if (game.game_over()) return;
     if (currentMode === 'online' && game.turn() !== playerColor) return; 
@@ -581,5 +601,4 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-                }
-              
+}
