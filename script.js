@@ -10,13 +10,11 @@ var countdownValue = 50;
 var isScriptLoaded = false;
 var savedRoomId = "";
 
-// SESSION STATE SYSTEM
+// GLOBAL SESSION STATE
 var isLoggedIn = false;
 var currentUsername = "";
 var cloudWins = 0;
 var cloudLosses = 0;
-
-// Dynamic Auth Mode Controller (States: 'signup' or 'login')
 var currentAuthMode = 'signup'; 
 
 function displayStats() {
@@ -25,13 +23,11 @@ function displayStats() {
         document.getElementById('stat-wins').innerText = cloudWins;
         document.getElementById('stat-losses').innerText = cloudLosses;
         document.getElementById('stat-total').innerText = cloudWins + cloudLosses;
-        
-        if(authMenuBtn) authMenuBtn.innerText = "🚪 Log Off / Sign Out";
+        if(authMenuBtn) authMenuBtn.innerText = "🚪 Log Off / Sign Out (" + currentUsername.toUpperCase() + ")";
     } else {
         document.getElementById('stat-wins').innerText = "0";
         document.getElementById('stat-losses').innerText = "0";
         document.getElementById('stat-total').innerText = "0";
-        
         if(authMenuBtn) authMenuBtn.innerText = "🔑 Sign Up / Log In";
     }
 }
@@ -49,7 +45,13 @@ function tryLoadingSocketEngine() {
     sScript.onload = function() {
         if (typeof io !== 'undefined') {
             isScriptLoaded = true;
-            socket = io("https://tz-chess-pro.onrender.com");
+            // Configured securely with clear fallback mechanics for Android WebView
+            socket = io("https://tz-chess-pro.onrender.com", {
+                transports: ['websocket', 'polling'],
+                reconnectionAttempts: 15,
+                timeout: 15000,
+                autoConnect: true
+            });
             setupSocketListeners();
         }
     };
@@ -95,13 +97,11 @@ function handleSettingsAuthTrigger() {
         });
     } else {
         $('.screen').hide();
-        switchAuthMode('signup'); // Default trigger
+        switchAuthMode('signup');
         $('#auth-error-msg').hide();
         $('#auth-screen').fadeIn().css('display', 'flex');
     }
 }
-
-// 🔥 AUTHENTICATION LOGIC FIXED & DYNAMIC SINGLE BUTTON SYSTEM
 
 function checkFriendModeTrigger() {
     if (isLoggedIn) {
@@ -114,7 +114,6 @@ function checkFriendModeTrigger() {
     }
 }
 
-// dynamic dynamic switcher loop
 function switchAuthMode(mode) {
     currentAuthMode = mode;
     var submitBtn = document.getElementById('auth-submit-btn');
@@ -123,7 +122,7 @@ function switchAuthMode(mode) {
     if (mode === 'login') {
         submitBtn.innerText = "LOG IN";
         submitBtn.style.background = "#6b8e23";
-        switchLink.innerHTML = 'have not any account? <span onclick="switchAuthMode(\'signup\')">Sign Up</span>';
+        switchLink.innerHTML = 'Don\'t have an account? <span onclick="switchAuthMode(\'signup\')">Sign Up</span>';
     } else {
         submitBtn.innerText = "CREATE NEW ACCOUNT";
         submitBtn.style.background = "#0288d1";
@@ -131,11 +130,11 @@ function switchAuthMode(mode) {
     }
 }
 
-// Dispatch correct action from single button
 function performAuthSubmit() {
     var user = document.getElementById('auth-username').value.trim();
     var pass = document.getElementById('auth-password').value;
     var errEl = document.getElementById('auth-error-msg');
+    var submitBtn = document.getElementById('auth-submit-btn');
 
     if (user.length < 6 || user.length > 20) {
         errEl.innerText = "Username must be 6 to 20 characters!";
@@ -149,12 +148,19 @@ function performAuthSubmit() {
     }
 
     $(errEl).hide();
-    if(socket && socket.connected) {
-        // dynamic dispatch data packet channel
-        if(currentAuthMode === 'signup') socket.emit('authSignUp', { username: user, password: pass });
-        if(currentAuthMode === 'login') socket.emit('authLogin', { username: user, password: pass });
+
+    if (!socket || !socket.connected) {
+        alert("Network Offline: Render cloud server se connection nahi ban pa raha hai. Kripya pehle main screen par 'Play with Friend' section me jaakar check karein ki server Green (Ready) hai ya nahi.");
+        return;
+    }
+
+    submitBtn.innerText = "Processing...";
+    submitBtn.disabled = true;
+        
+    if (currentAuthMode === 'signup') {
+        socket.emit('authSignUp', { username: user, password: pass });
     } else {
-        alert("Server network unavailable! Check connection.");
+        socket.emit('authLogin', { username: user, password: pass });
     }
 }
 
@@ -259,8 +265,13 @@ function setupSocketListeners() {
         if($('#online-setup').is(':visible')) updateServerStatus(false);
     });
 
-    // 🔥 HANDLE SECURE RESPONSE TO FRONTEND (SIGNUP / LOGIN FIXED)
     socket.on('authResponse', function(res) {
+        var submitBtn = document.getElementById('auth-submit-btn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = currentAuthMode === 'signup' ? "CREATE NEW ACCOUNT" : "LOG IN";
+        }
+
         if(res.success) {
             isLoggedIn = true;
             currentUsername = res.username;
@@ -270,12 +281,9 @@ function setupSocketListeners() {
             alert(res.msg);
             showOnlineSetup(); 
         } else {
-            // dynamic dynamic render
             var errEl = document.getElementById('auth-error-msg');
             errEl.innerText = res.msg;
             $(errEl).show();
-            
-            submitBtn.disabled = false; // re enable input
         }
     });
 
@@ -371,6 +379,7 @@ function showConfirmModal(message, yesCallback) {
     };
 }
 
+// Global confirm framework configurations
 function showOnlineRestartModal(message, restartCallback, noCallback) {
     document.getElementById('confirm-message').innerText = message;
     var yesBtn = document.getElementById('confirm-yes-btn');
@@ -575,6 +584,7 @@ function highlightKing(color) {
     }
 }
 
+// Validating targeted layout mapping movements
 function highlight(square) {
     var p = game.get(square);
     if (!p) return;
@@ -590,15 +600,4 @@ function highlight(square) {
 }
 
 function showGameOver(msg) {
-    document.getElementById('winner-text').innerText = msg;
-    $('#game-over-overlay').fadeIn().css('display', 'flex');
-}
-
-function makeBotMove() {
-    var moves = game.moves();
-    if (moves.length === 0) return;
-    game.move(moves[Math.floor(Math.random() * moves.length)]);
-    board.position(game.fen());
-    updateStatus();
-    bindSquareClicks(); 
-}
+    document.ge
