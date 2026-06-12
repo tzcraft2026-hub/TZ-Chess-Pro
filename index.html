@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>TZ Chess Pro</title>
+    <title>TZ Chess Pro - Web</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css">
 </head>
@@ -11,15 +11,6 @@
 <body>
     <div class="app-container">
         <div id="home-screen" class="screen">
-            <div class="home-header-bar" style="justify-content: flex-end;">
-                <div class="settings-menu-container">
-                    <button class="btn-settings-gear" onclick="toggleSettingsDropdown()">⚙️</button>
-                    <div id="settingsDropdown" class="dropdown-content settings-dropdown">
-                        <button id="settings-auth-action-btn" onclick="handleSettingsAuthTrigger()">🔑 Sign Up / Log In</button>
-                    </div>
-                </div>
-            </div>
-
             <h1 class="logo">TZ CHESS PRO</h1>
             <div class="stats-container">
                 <div class="stat-box"><span>Matches</span><strong id="stat-total">0</strong></div>
@@ -28,26 +19,7 @@
             </div>
             <button class="btn-main" onclick="initGame('bot')">🤖 PLAY WITH BOT</button>
             <button class="btn-main" onclick="initGame('local')">⚔️ PASS & PLAY (2 PLAYER)</button>
-            <button class="btn-main" onclick="checkFriendModeTrigger()">👥 PLAY WITH FRIEND</button>
-        </div>
-
-        <div id="auth-screen" class="screen" style="display: none; justify-content: center;">
-            <h2 id="auth-header" style="color: #fff; text-align: center; font-size: 1.2rem; margin-bottom: 25px;">Sign up/log in first to play Friend Mode</h2>
-            <div class="auth-box">
-                <form>
-                <input type="text" id="auth-username" placeholder="Username (6-20 chars)">
-                <input type="password" id="auth-password" placeholder="Password (8+ chars)">
-                <p id="auth-error-msg" style="color:#ff5252; font-size:0.85rem; margin-top:-5px; margin-bottom:15px; text-align:center; display:none;"></p>
-                
-                <button class="btn-main" id="auth-submit-btn" onclick="performAuthSubmit()">CREATE NEW ACCOUNT</button>
-                
-                <div class="auth-switcher-container">
-                    <p id="auth-switch-link-container">Already have an account? <span onclick="switchAuthMode('login')">Log In</span></p>
-                </form>
-                </div>
-
-                <button class="btn-secondary" onclick="goBackToHome()">Cancel</button>
-            </div>
+            <button class="btn-main" onclick="showOnlineSetup()">👥 PLAY WITH FRIEND</button>
         </div>
 
         <div id="online-setup" class="screen" style="display: none;">
@@ -116,4 +88,5 @@
     <script src="lib/chessboard-1.0.0.min.js"></script>
     <script src="script.js"></script>
 </body>
-</html>
+    </html>
+    
