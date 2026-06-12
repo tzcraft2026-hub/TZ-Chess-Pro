@@ -8,13 +8,12 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const server = http.createServer(app);
 
-// 🔥 DATABASE CONNECTION (Apni MongoDB Connection String yahan dalein)
+// 🔥 CLOUD DATABASE PIPELINE (Apni Atlas connection string yahan lagayein)
 const MONGO_URI = "mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.xxxx.mongodb.net/chessDB?retryWrites=true&w=majority";
 mongoose.connect(MONGO_URI)
-    .then(() => console.log("✔ MongoDB Cloud Connected Safely!"))
+    .then(() => console.log("✔ MongoDB Atlas Securely Connected!"))
     .catch(err => console.log("❌ DB Connection Error: ", err));
 
-// User Schema Blueprint
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, minlength: 6, maxlength: 20 },
     password: { type: String, required: true },
@@ -23,8 +22,14 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// CORS cross origin bypass layers configuration for local mobile asset loading
 const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+    cors: { 
+        origin: "*", 
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    transports: ['websocket', 'polling']
 });
 
 app.use(express.static(__dirname)); 
@@ -34,71 +39,70 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('A user connected: ' + socket.id);
+    console.log('User synchronization live: ' + socket.id);
 
-    // SIGN UP PIPELINE
+    // SIGN UP FLOW WITH INSTANT FAIL-SAFE SYSTEM
     socket.on('authSignUp', async (data) => {
         try {
             const { username, password } = data;
-            
-            if (username.length < 6 || username.length > 20) {
-                return socket.emit('authResponse', { success: false, msg: "Username must be 6 to 20 characters!" });
-            }
-            if (password.length < 8) {
-                return socket.emit('authResponse', { success: false, msg: "Password must be at least 8 characters long!" });
+            if (!username || !password) {
+                return socket.emit('authResponse', { success: false, msg: "All fields are required!" });
             }
 
-            const existingUser = await User.findOne({ username: username.toLowerCase() });
+            const cleanUser = username.trim().toLowerCase();
+            if (cleanUser.length < 6 || cleanUser.length > 20) {
+                return socket.emit('authResponse', { success: false, msg: "Username must be 6-20 characters!" });
+            }
+
+            const existingUser = await User.findOne({ username: cleanUser });
             if (existingUser) {
-                return socket.emit('authResponse', { success: false, msg: "Username already taken! Please Login instead." });
+                return socket.emit('authResponse', { success: false, msg: "Username already taken! Try another one." });
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
-            const newUser = new User({ username: username.toLowerCase(), password: hashedPassword });
+            const newUser = new User({ username: cleanUser, password: hashedPassword });
             await newUser.save();
 
             socket.emit('authResponse', { 
                 success: true, 
-                action: "signup", 
                 username: newUser.username, 
                 wins: newUser.wins, 
                 losses: newUser.losses, 
-                msg: "Account created successfully! Enjoy Friend Mode." 
+                msg: "Account created successfully! Welcome." 
             });
         } catch (err) {
-            socket.emit('authResponse', { success: false, msg: "Server error during registration!" });
+            socket.emit('authResponse', { success: false, msg: "Database connection failed during Sign Up!" });
         }
     });
 
-    // LOGIN PIPELINE
+    // LOGIN FLOW
     socket.on('authLogin', async (data) => {
         try {
             const { username, password } = data;
-            const user = await User.findOne({ username: username.toLowerCase() });
-            
+            const cleanUser = username.trim().toLowerCase();
+
+            const user = await User.findOne({ username: cleanUser });
             if (!user) {
-                return socket.emit('authResponse', { success: false, msg: "Account not found! Register as a new user." });
+                return socket.emit('authResponse', { success: false, msg: "Account not found! Register instead." });
             }
 
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
-                return socket.emit('authResponse', { success: false, msg: "Incorrect Password! Try again." });
+                return socket.emit('authResponse', { success: false, msg: "Incorrect Password!" });
             }
 
             socket.emit('authResponse', { 
                 success: true, 
-                action: "login", 
                 username: user.username, 
                 wins: user.wins, 
                 losses: user.losses, 
                 msg: "Welcome back, Master!" 
             });
         } catch (err) {
-            socket.emit('authResponse', { success: false, msg: "Server authentication failed!" });
+            socket.emit('authResponse', { success: false, msg: "Server authentication engine failure!" });
         }
     });
 
-    // SYNC STATS UPDATE IN CLOUD
     socket.on('cloudUpdateStats', async (data) => {
         try {
             const { username, type } = data;
@@ -110,11 +114,10 @@ io.on('connection', (socket) => {
                 socket.emit('statsSynced', { wins: user.wins, losses: user.losses });
             }
         } catch (err) {
-            console.log("Stats syncing failed");
+            console.log("Stats error");
         }
     });
 
-    // MULTIPLAYER MATCHMAKING MECHANICS
     socket.on('joinRoom', (roomId) => {
         if(socket.roomId) socket.leave(socket.roomId);
         socket.join(roomId);
@@ -169,4 +172,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-        
+                
