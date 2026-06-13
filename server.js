@@ -1,175 +1,175 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const cors = require('cors');
 
 const app = express();
+app.use(cors());
+
 const server = http.createServer(app);
-
-// 🔥 CLOUD DATABASE PIPELINE (Apni Atlas connection string yahan lagayein)
-const MONGO_URI = "mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.xxxx.mongodb.net/chessDB?retryWrites=true&w=majority";
-mongoose.connect(MONGO_URI)
-    .then(() => console.log("✔ MongoDB Atlas Securely Connected!"))
-    .catch(err => console.log("❌ DB Connection Error: ", err));
-
-const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true, minlength: 6, maxlength: 20 },
-    password: { type: String, required: true },
-    wins: { type: Number, default: 0 },
-    losses: { type: Number, default: 0 }
-});
-const User = mongoose.model('User', userSchema);
-
-// CORS cross origin bypass layers configuration for local mobile asset loading
 const io = new Server(server, {
-    cors: { 
-        origin: "*", 
-        methods: ["GET", "POST"],
-        credentials: true
-    },
-    transports: ['websocket', 'polling']
+    cors: {
+        origin: "*", // Sabhi origins ko allow karne ke liye (Aapki frontend web hosting)
+        methods: ["GET", "POST"]
+    }
 });
 
-app.use(express.static(__dirname)); 
+// ===================================================
+// 💾 PERMANENT SERVER-SIDE DATABASE BANKS
+// ===================================================
+// Jab tak aapka server live rahega, ye data global rahega.
+// Kisi bhi device se request aaye, ye duplication block karega.
+let serverUsersDB = {}; 
+let rooms = {}; // Active online chess rooms tracker
 
+// Base route testing ke liye
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.send('TZ Chess Pro Engine Server is Running Successfully! 🚀');
 });
 
+// ===================================================
+// 📡 REALTIME WEB-SOCKET LOBBY MANAGEMENT
+// ===================================================
 io.on('connection', (socket) => {
-    console.log('User synchronization live: ' + socket.id);
+    console.log(`[👤 Connection Created]: User Connected with ID -> ${socket.id}`);
 
-    // SIGN UP FLOW WITH INSTANT FAIL-SAFE SYSTEM
-    socket.on('authSignUp', async (data) => {
-        try {
-            const { username, password } = data;
-            if (!username || !password) {
-                return socket.emit('authResponse', { success: false, msg: "All fields are required!" });
-            }
+    // ---------------------------------------------------
+    // 🔥 1. SIGN UP/REGISTER EVENT HANDLER
+    // ---------------------------------------------------
+    socket.on('serverRegisterUser', (data) => {
+        const username = data.username ? data.username.trim() : "";
+        const password = data.password;
 
-            const cleanUser = username.trim().toLowerCase();
-            if (cleanUser.length < 6 || cleanUser.length > 20) {
-                return socket.emit('authResponse', { success: false, msg: "Username must be 6-20 characters!" });
-            }
+        if (!username || !password) {
+            socket.emit('authResponse', { success: false, message: "Invalid Form Fields Data!" });
+            return;
+        }
 
-            const existingUser = await User.findOne({ username: cleanUser });
-            if (existingUser) {
-                return socket.emit('authResponse', { success: false, msg: "Username already taken! Try another one." });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const newUser = new User({ username: cleanUser, password: hashedPassword });
-            await newUser.save();
-
-            socket.emit('authResponse', { 
-                success: true, 
-                username: newUser.username, 
-                wins: newUser.wins, 
-                losses: newUser.losses, 
-                msg: "Account created successfully! Welcome." 
-            });
-        } catch (err) {
-            socket.emit('authResponse', { success: false, msg: "Database connection failed during Sign Up!" });
+        // PROBLEM 2 FIX: Global server check validation (Duplication block across all devices)
+        if (serverUsersDB[username] !== undefined) {
+            socket.emit('authResponse', { success: false, message: "This username is already taken on TZ Server!" });
+            console.log(`[🚫 Signup Blocked]: Duplicate entry attempt for -> ${username}`);
+        } else {
+            // Account locking down permanently inside the server cloud memory matrix
+            serverUsersDB[username] = password;
+            console.log(`[🔐 Account Created]: Successfully registered user -> ${username}`);
+            
+            // PROBLEM 1 FIX: Account bante hi direct response dispatch with success flag!
+            socket.emit('authResponse', { success: true, username: username });
         }
     });
 
-    // LOGIN FLOW
-    socket.on('authLogin', async (data) => {
-        try {
-            const { username, password } = data;
-            const cleanUser = username.trim().toLowerCase();
+    // ---------------------------------------------------
+    // 🔥 2. LOG IN EVENT HANDLER
+    // ---------------------------------------------------
+    socket.on('serverLoginUser', (data) => {
+        const username = data.username ? data.username.trim() : "";
+        const password = data.password;
 
-            const user = await User.findOne({ username: cleanUser });
-            if (!user) {
-                return socket.emit('authResponse', { success: false, msg: "Account not found! Register instead." });
-            }
-
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                return socket.emit('authResponse', { success: false, msg: "Incorrect Password!" });
-            }
-
-            socket.emit('authResponse', { 
-                success: true, 
-                username: user.username, 
-                wins: user.wins, 
-                losses: user.losses, 
-                msg: "Welcome back, Master!" 
-            });
-        } catch (err) {
-            socket.emit('authResponse', { success: false, msg: "Server authentication engine failure!" });
+        if (serverUsersDB[username] !== undefined && serverUsersDB[username] === password) {
+            console.log(`[🔓 Logged In]: Identity verified for -> ${username}`);
+            socket.emit('loginResponse', { success: true, username: username });
+        } else {
+            socket.emit('loginResponse', { success: false, message: "Invalid Username or Password!" });
+            console.log(`[⚠️ Login Failed]: Invalid credentials attempt for -> ${username}`);
         }
     });
 
-    socket.on('cloudUpdateStats', async (data) => {
-        try {
-            const { username, type } = data;
-            const user = await User.findOne({ username: username.toLowerCase() });
-            if (user) {
-                if (type === 'win') user.wins += 1;
-                if (type === 'loss') user.losses += 1;
-                await user.save();
-                socket.emit('statsSynced', { wins: user.wins, losses: user.losses });
-            }
-        } catch (err) {
-            console.log("Stats error");
-        }
-    });
-
+    // ---------------------------------------------------
+    // 👥 3. MULTIPLAYER CHESS LOBBY MANAGEMENT
+    // ---------------------------------------------------
     socket.on('joinRoom', (roomId) => {
-        if(socket.roomId) socket.leave(socket.roomId);
-        socket.join(roomId);
-        socket.roomId = roomId;
+        roomId = roomId.trim();
+        socket.currentRoom = roomId;
 
-        const clients = io.sockets.adapter.rooms.get(roomId);
-        const numClients = clients ? clients.size : 0;
-
-        if (numClients === 1) {
+        if (!rooms[roomId]) {
+            // Agar room nahi bana hai, toh naya banao aur is player ko White allot karo
+            rooms[roomId] = [socket.id];
+            socket.join(roomId);
             socket.emit('playerRole', 'w');
-        } else if (numClients === 2) {
+            console.log(`[🏠 Room Created]: ${roomId} by Player (White) -> ${socket.id}`);
+        } else if (rooms[roomId].length === 1) {
+            // Agar room me ek player hai, toh join karwao aur use Black allot karo
+            rooms[roomId].push(socket.id);
+            socket.join(roomId);
             socket.emit('playerRole', 'b');
-            io.to(roomId).emit('gameStart'); 
+            console.log(`[⚔️ Matchmaking Complete]: Player (Black) -> ${socket.id} joined Room -> ${roomId}`);
+            
+            // Dono players ko game start ka event trigger bhejdo
+            io.to(roomId).emit('gameStart');
+        } else {
+            // Agar room pehle se full hai (max 2 players allowable rules)
+            socket.emit('statusMessage', 'Room is completely full!');
+            console.log(`[🚫 Room Full Alert]: Access denied on Room -> ${roomId} for -> ${socket.id}`);
         }
     });
 
-    socket.on('move', (move) => {
-        if (socket.roomId) socket.to(socket.roomId).emit('move', move);
+    // Move transmission router handler
+    socket.on('move', (moveData) => {
+        if (socket.currentRoom) {
+            // Apne opponent player ko move pass on karo broadcast pipe se
+            socket.to(socket.currentRoom).emit('move', moveData);
+        }
     });
 
+    // Match Restart Handler Pipeline Matrix
     socket.on('requestRestart', () => {
-        if (socket.roomId) socket.to(socket.roomId).emit('receiveRestartRequest');
+        if (socket.currentRoom) {
+            socket.to(socket.currentRoom).emit('receiveRestartRequest');
+        }
     });
 
     socket.on('acceptRestart', () => {
-        if (socket.roomId) socket.to(socket.roomId).emit('restartAccepted');
+        if (socket.currentRoom) {
+            io.to(socket.currentRoom).emit('restartAccepted');
+        }
     });
 
     socket.on('declineRestart', () => {
-        if (socket.roomId) socket.to(socket.roomId).emit('restartDeclined');
+        if (socket.currentRoom) {
+            socket.to(socket.currentRoom).emit('restartDeclined');
+        }
     });
 
-    socket.on('leaveCurrentRoom', () => {
-        const roomId = socket.roomId;
-        if (roomId) {
+    // ---------------------------------------------------
+    // 🚪 4. DISCONNECT & LEAVE ROOM CONTROL FILTERS
+    // ---------------------------------------------------
+    function handleUserLeavingLobby() {
+        const roomId = socket.currentRoom;
+        if (roomId && rooms[roomId]) {
+            console.log(`[🏃 Player Left]: User ${socket.id} left Room -> ${roomId}`);
+            
+            // Opponent ko notify karein tab closure ya manual leave trigger hone par
+            socket.to(roomId).emit('opponentDisconnected');
+            
+            // Array node filter out process
+            rooms[roomId] = rooms[roomId].filter(id => id !== socket.id);
+            if (rooms[roomId].length === 0) {
+                delete rooms[roomId];
+                console.log(`[🗑️ Room Destroyed]: Empty registry clean up done for -> ${roomId}`);
+            }
             socket.leave(roomId);
-            socket.to(roomId).emit('opponentDisconnected', { msg: "Opponent Left" });
-            socket.roomId = null;
+            socket.currentRoom = null;
         }
+    }
+
+    socket.on('leaveCurrentRoom', () => {
+        handleUserLeavingLobby();
     });
 
     socket.on('disconnect', () => {
-        const roomId = socket.roomId;
-        if (roomId) {
-            const clients = io.sockets.adapter.rooms.get(roomId);
-            if (clients && clients.size === 1) {
-                io.to(roomId).emit('opponentDisconnected', { msg: "Opponent left" });
-            }
-        }
+        console.log(`[🔌 Disconnected]: Session ended for Client ID -> ${socket.id}`);
+        handleUserLeavingLobby();
     });
 });
 
+// ===================================================
+// ⚡ PORT ALLOCATION SYSTEM ENGINE
+// ===================================================
+// Render Cloud variable engine port parse karne ke liye process.env use hoga
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-                
+server.listen(PORT, () => {
+    console.log(`\n=================================================`);
+    console.log(`🚀 TZ CHESS PRO SERVER IS LIVE ON PORT: ${PORT}`);
+    console.log(`=================================================\n`);
+});
