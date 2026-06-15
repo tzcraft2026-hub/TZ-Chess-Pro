@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const fs = require('fs'); // ✅ Naya module: Files save karne ke liye
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -9,18 +11,48 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // Sabhi origins ko allow karne ke liye (Aapki frontend web hosting)
+        origin: "*", 
         methods: ["GET", "POST"]
     }
 });
 
 // ===================================================
-// 💾 PERMANENT SERVER-SIDE DATABASE BANKS
+// 💾 PERMANENT LOCAL FILE DATABASE SYSTEM
 // ===================================================
-// Jab tak aapka server live rahega, ye data global rahega.
-// Kisi bhi device se request aaye, ye duplication block karega.
+const dbFilePath = path.join(__dirname, 'users.json');
 let serverUsersDB = {}; 
 let rooms = {}; // Active online chess rooms tracker
+
+// 📁 File se purana data load karne ka system
+function loadUserDataFromLocalFile() {
+    try {
+        if (fs.existsSync(dbFilePath)) {
+            const fileData = fs.readFileSync(dbFilePath, 'utf8');
+            serverUsersDB = JSON.parse(fileData);
+            console.log(`[📦 Database Loaded]: Total ${Object.keys(serverUsersDB).length} accounts loaded safely from file.`);
+        } else {
+            // Agar file nahi bani hai, toh khali file bana do
+            fs.writeFileSync(dbFilePath, JSON.stringify({}), 'utf8');
+            console.log(`[📝 Database Created]: Fresh users.json file generated.`);
+        }
+    } catch (error) {
+        console.log(`[⚠️ Database Load Error]: `, error);
+    }
+}
+
+// 💾 Naya account banne par file me save karne ka system
+function saveUserDataToLocalFile() {
+    try {
+        fs.writeFileSync(dbFilePath, JSON.stringify(serverUsersDB, null, 2), 'utf8');
+        console.log(`[💾 Database Synced]: Account matrix written to disk.`);
+    } catch (error) {
+        console.log(`[⚠️ Database Save Error]: `, error);
+    }
+}
+
+// Initialize and Boot Database on startup
+loadUserDataFromLocalFile();
+
 
 // Base route testing ke liye
 app.get('/', (req, res) => {
@@ -45,16 +77,16 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // PROBLEM 2 FIX: Global server check validation (Duplication block across all devices)
+        // Global server check validation (Baar-baar same name se naya account lock out rahega)
         if (serverUsersDB[username] !== undefined) {
             socket.emit('authResponse', { success: false, message: "This username is already taken on TZ Server!" });
             console.log(`[🚫 Signup Blocked]: Duplicate entry attempt for -> ${username}`);
         } else {
-            // Account locking down permanently inside the server cloud memory matrix
+            // Memory matrix ke sath-sath file database me lock karega permanent!
             serverUsersDB[username] = password;
-            console.log(`[🔐 Account Created]: Successfully registered user -> ${username}`);
+            saveUserDataToLocalFile(); // ✅ Instant disk sync write
             
-            // PROBLEM 1 FIX: Account bante hi direct response dispatch with success flag!
+            console.log(`[🔐 Account Created]: Successfully registered user -> ${username}`);
             socket.emit('authResponse', { success: true, username: username });
         }
     });
@@ -83,36 +115,28 @@ io.on('connection', (socket) => {
         socket.currentRoom = roomId;
 
         if (!rooms[roomId]) {
-            // Agar room nahi bana hai, toh naya banao aur is player ko White allot karo
             rooms[roomId] = [socket.id];
             socket.join(roomId);
             socket.emit('playerRole', 'w');
             console.log(`[🏠 Room Created]: ${roomId} by Player (White) -> ${socket.id}`);
         } else if (rooms[roomId].length === 1) {
-            // Agar room me ek player hai, toh join karwao aur use Black allot karo
             rooms[roomId].push(socket.id);
             socket.join(roomId);
             socket.emit('playerRole', 'b');
             console.log(`[⚔️ Matchmaking Complete]: Player (Black) -> ${socket.id} joined Room -> ${roomId}`);
-            
-            // Dono players ko game start ka event trigger bhejdo
             io.to(roomId).emit('gameStart');
         } else {
-            // Agar room pehle se full hai (max 2 players allowable rules)
             socket.emit('statusMessage', 'Room is completely full!');
             console.log(`[🚫 Room Full Alert]: Access denied on Room -> ${roomId} for -> ${socket.id}`);
         }
     });
 
-    // Move transmission router handler
     socket.on('move', (moveData) => {
         if (socket.currentRoom) {
-            // Apne opponent player ko move pass on karo broadcast pipe se
             socket.to(socket.currentRoom).emit('move', moveData);
         }
     });
 
-    // Match Restart Handler Pipeline Matrix
     socket.on('requestRestart', () => {
         if (socket.currentRoom) {
             socket.to(socket.currentRoom).emit('receiveRestartRequest');
@@ -127,7 +151,7 @@ io.on('connection', (socket) => {
 
     socket.on('declineRestart', () => {
         if (socket.currentRoom) {
-            socket.to(socket.currentRoom).emit('restartDeclined');
+            io.to(socket.currentRoom).emit('restartDeclined');
         }
     });
 
@@ -138,11 +162,7 @@ io.on('connection', (socket) => {
         const roomId = socket.currentRoom;
         if (roomId && rooms[roomId]) {
             console.log(`[🏃 Player Left]: User ${socket.id} left Room -> ${roomId}`);
-            
-            // Opponent ko notify karein tab closure ya manual leave trigger hone par
             socket.to(roomId).emit('opponentDisconnected');
-            
-            // Array node filter out process
             rooms[roomId] = rooms[roomId].filter(id => id !== socket.id);
             if (rooms[roomId].length === 0) {
                 delete rooms[roomId];
@@ -166,7 +186,6 @@ io.on('connection', (socket) => {
 // ===================================================
 // ⚡ PORT ALLOCATION SYSTEM ENGINE
 // ===================================================
-// Render Cloud variable engine port parse karne ke liye process.env use hoga
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`\n=================================================`);
