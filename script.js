@@ -10,31 +10,25 @@ var countdownValue = 50;
 var isScriptLoaded = false;
 var savedRoomId = "";
 
-// GLOBAL SESSION STATE
-var isLoggedIn = false;
-var currentUsername = "";
-var cloudWins = 0;
-var cloudLosses = 0;
-var currentAuthMode = 'signup'; 
+function getStats() {
+    return {
+        wins: parseInt(localStorage.getItem('tz_wins')) || 0,
+        losses: parseInt(localStorage.getItem('tz_losses')) || 0
+    };
+}
 
 function displayStats() {
-    var authMenuBtn = document.getElementById('settings-auth-action-btn');
-    if(isLoggedIn) {
-        document.getElementById('stat-wins').innerText = cloudWins;
-        document.getElementById('stat-losses').innerText = cloudLosses;
-        document.getElementById('stat-total').innerText = cloudWins + cloudLosses;
-        if(authMenuBtn) authMenuBtn.innerText = "🚪 Log Off / Sign Out (" + currentUsername.toUpperCase() + ")";
-    } else {
-        document.getElementById('stat-wins').innerText = "0";
-        document.getElementById('stat-losses').innerText = "0";
-        document.getElementById('stat-total').innerText = "0";
-        if(authMenuBtn) authMenuBtn.innerText = "🔑 Sign Up / Log In";
-    }
+    let s = getStats();
+    document.getElementById('stat-wins').innerText = s.wins;
+    document.getElementById('stat-losses').innerText = s.losses;
+    document.getElementById('stat-total').innerText = s.wins + s.losses;
 }
 
 function saveStat(type) {
-    if (!isLoggedIn) return; 
-    socket.emit('cloudUpdateStats', { username: currentUsername, type: type });
+    let s = getStats();
+    if (type === 'win') localStorage.setItem('tz_wins', s.wins + 1);
+    else if (type === 'loss') localStorage.setItem('tz_losses', s.losses + 1);
+    displayStats();
 }
 
 function tryLoadingSocketEngine() {
@@ -45,13 +39,7 @@ function tryLoadingSocketEngine() {
     sScript.onload = function() {
         if (typeof io !== 'undefined') {
             isScriptLoaded = true;
-            // Configured securely with clear fallback mechanics for Android WebView
-            socket = io("https://tz-chess-pro.onrender.com", {
-                transports: ['websocket', 'polling'],
-                reconnectionAttempts: 15,
-                timeout: 15000,
-                autoConnect: true
-            });
+            socket = io("https://tz-chess-pro.onrender.com");
             setupSocketListeners();
         }
     };
@@ -74,95 +62,12 @@ window.onload = function() {
     }, 3000);
 };
 
+// 🔥 FIX 2: Agar user website ka tab close karega ya refresh karega, toh opponent ko turant 'Opponent Left' chala jayega
 window.onbeforeunload = function() {
     if (socket && socket.connected && currentMode === 'online') {
         socket.emit('leaveCurrentRoom');
     }
 };
-
-function toggleSettingsDropdown() {
-    document.getElementById("settingsDropdown").classList.toggle("show");
-}
-
-function handleSettingsAuthTrigger() {
-    document.getElementById("settingsDropdown").classList.remove("show");
-    if(isLoggedIn) {
-        showConfirmModal("Are you sure you want to sign off?", function() {
-            isLoggedIn = false;
-            currentUsername = "";
-            cloudWins = 0;
-            cloudLosses = 0;
-            displayStats();
-            alert("Logged out successfully!");
-        });
-    } else {
-        $('.screen').hide();
-        switchAuthMode('signup');
-        $('#auth-error-msg').hide();
-        $('#auth-screen').fadeIn().css('display', 'flex');
-    }
-}
-
-function checkFriendModeTrigger() {
-    if (isLoggedIn) {
-        showOnlineSetup();
-    } else {
-        $('.screen').hide();
-        switchAuthMode('signup'); 
-        $('#auth-error-msg').hide();
-        $('#auth-screen').fadeIn().css('display', 'flex');
-    }
-}
-
-function switchAuthMode(mode) {
-    currentAuthMode = mode;
-    var submitBtn = document.getElementById('auth-submit-btn');
-    var switchLink = document.getElementById('auth-switch-link-container');
-    
-    if (mode === 'login') {
-        submitBtn.innerText = "LOG IN";
-        submitBtn.style.background = "#6b8e23";
-        switchLink.innerHTML = 'Don\'t have an account? <span onclick="switchAuthMode(\'signup\')">Sign Up</span>';
-    } else {
-        submitBtn.innerText = "CREATE NEW ACCOUNT";
-        submitBtn.style.background = "#0288d1";
-        switchLink.innerHTML = 'Already have an account? <span onclick="switchAuthMode(\'login\')">Log In</span>';
-    }
-}
-
-function performAuthSubmit() {
-    var user = document.getElementById('auth-username').value.trim();
-    var pass = document.getElementById('auth-password').value;
-    var errEl = document.getElementById('auth-error-msg');
-    var submitBtn = document.getElementById('auth-submit-btn');
-
-    if (user.length < 6 || user.length > 20) {
-        errEl.innerText = "Username must be 6 to 20 characters!";
-        $(errEl).show();
-        return;
-    }
-    if (pass.length < 8) {
-        errEl.innerText = "Password must be at least 8 characters long!";
-        $(errEl).show();
-        return;
-    }
-
-    $(errEl).hide();
-
-    if (!socket || !socket.connected) {
-        alert("Network Offline: Render cloud server se connection nahi ban pa raha hai. Kripya pehle main screen par 'Play with Friend' section me jaakar check karein ki server Green (Ready) hai ya nahi.");
-        return;
-    }
-
-    submitBtn.innerText = "Processing...";
-    submitBtn.disabled = true;
-        
-    if (currentAuthMode === 'signup') {
-        socket.emit('authSignUp', { username: user, password: pass });
-    } else {
-        socket.emit('authLogin', { username: user, password: pass });
-    }
-}
 
 function toggleMenuDropdown() {
     document.getElementById("myDropdown").classList.toggle("show");
@@ -173,15 +78,9 @@ window.onclick = function(event) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         for (var i = 0; i < dropdowns.length; i++) {
             var openDropdown = dropdowns[i];
-            if (openDropdown.classList.contains('show') && !openDropdown.classList.contains('settings-dropdown')) {
+            if (openDropdown.classList.contains('show')) {
                 openDropdown.classList.remove('show');
             }
-        }
-    }
-    if (!event.target.matches('.btn-settings-gear')) {
-        var settingsDrop = document.getElementById("settingsDropdown");
-        if(settingsDrop && settingsDrop.classList.contains('show')) {
-            settingsDrop.classList.remove('show');
         }
     }
 }
@@ -190,9 +89,15 @@ function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
     document.getElementById('room-id').value = ""; 
+    
+    var timerDiv = document.getElementById('countdown-timer');
+    if (timerDiv) timerDiv.style.display = 'none'; // Countdown timer ko permanently hide rakhein
+
+    // Agar socket pehle se connected hai toh direct ready kar do
     if (socket && socket.connected) {
         updateServerStatus(true);
     } else {
+        // Agar connect nahi hai toh "Connecting..." state dikhao
         updateServerStatus(false);
     }
 }
@@ -202,45 +107,30 @@ function updateServerStatus(ready) {
     var joinBtn = document.getElementById('btn-join');
     var timerDiv = document.getElementById('countdown-timer');
     
-    if (ready) {
+    // Purane chalte hue countdown intervals ko hamesha ke liye clear rakhein
+    if (countdownInterval) {
         clearInterval(countdownInterval);
-        countdownInterval = null; 
-        if(timerDiv) timerDiv.style.display = 'none';
-        
+        countdownInterval = null;
+    }
+    if (timerDiv) timerDiv.style.display = 'none';
+
+    if (!navigator.onLine) {
+        statusText.innerText = "⚠️ Please Turn On Your Internet Connection!";
+        statusText.style.color = "#ff5252";
+        joinBtn.disabled = true;
+        joinBtn.style.background = "#444";
+    } else if (ready) {
+        // Jab server connect ho jaye
         statusText.innerText = "● Server Connected (Ready)";
         statusText.style.color = "#8cb302";
         joinBtn.disabled = false;
         joinBtn.style.background = "#6b8e23";
     } else {
-        statusText.innerText = "Please wait... Waking up Render Cloud Server.";
-        statusText.style.color = "#ffeb3b";
+        // Jab server background mein connect ho raha ho (Waking up / Connecting)
+        statusText.innerText = "Connecting to Server...";
+        statusText.style.color = "#ffeb3b"; // Yellow color for connecting status
         joinBtn.disabled = true;
         joinBtn.style.background = "#444";
-        
-        if(timerDiv && !countdownInterval && navigator.onLine) {
-            timerDiv.style.display = 'block';
-            countdownValue = 50;
-            document.getElementById('timer-sec').innerText = countdownValue;
-            
-            countdownInterval = setInterval(function() {
-                if (socket && socket.connected) {
-                    updateServerStatus(true);
-                    return;
-                }
-                countdownValue--;
-                document.getElementById('timer-sec').innerText = countdownValue;
-                
-                if(countdownValue <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    statusText.innerText = "Connecting... (Checking status)";
-                }
-            }, 1000);
-        } else if (!navigator.onLine) {
-            statusText.innerText = "⚠️ Please Turn On Your Internet Connection!";
-            statusText.style.color = "#ff5252";
-            if(timerDiv) timerDiv.style.display = 'none';
-        }
     }
 }
 
@@ -264,35 +154,6 @@ function setupSocketListeners() {
         isOnlineReady = false;
         if($('#online-setup').is(':visible')) updateServerStatus(false);
     });
-
-    socket.on('authResponse', function(res) {
-        var submitBtn = document.getElementById('auth-submit-btn');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerText = currentAuthMode === 'signup' ? "CREATE NEW ACCOUNT" : "LOG IN";
-        }
-
-        if(res.success) {
-            isLoggedIn = true;
-            currentUsername = res.username;
-            cloudWins = res.wins;
-            cloudLosses = res.losses;
-            displayStats();
-            alert(res.msg);
-            showOnlineSetup(); 
-        } else {
-            var errEl = document.getElementById('auth-error-msg');
-            errEl.innerText = res.msg;
-            $(errEl).show();
-        }
-    });
-
-    socket.on('statsSynced', function(data) {
-        cloudWins = data.wins;
-        cloudLosses = data.losses;
-        displayStats();
-    });
-
     socket.on('playerRole', function(role) { playerColor = role; });
     socket.on('gameStart', function() { initGame('online'); });
     socket.on('move', function(move) {
@@ -319,7 +180,9 @@ function setupSocketListeners() {
         }
     });
 
-    socket.on('restartAccepted', function() { executeLocalReset(); });
+    socket.on('restartAccepted', function() {
+        executeLocalReset();
+    });
 
     socket.on('restartDeclined', function() {
         var statusEl = document.getElementById('status');
@@ -379,7 +242,6 @@ function showConfirmModal(message, yesCallback) {
     };
 }
 
-// Global confirm framework configurations
 function showOnlineRestartModal(message, restartCallback, noCallback) {
     document.getElementById('confirm-message').innerText = message;
     var yesBtn = document.getElementById('confirm-yes-btn');
@@ -405,6 +267,7 @@ function closeConfirmModal() {
 
 function triggerUndo() {
     if (game.game_over() || currentMode === 'online') return;
+    
     if (currentMode === 'bot') {
         game.undo(); game.undo();
         board.position(game.fen());
@@ -419,7 +282,9 @@ function triggerUndo() {
 function triggerRestart() {
     showConfirmModal("You want to restart the match?", function() {
         if (currentMode === 'online') {
-            if (socket && socket.connected) socket.emit('requestRestart');
+            if (socket && socket.connected) {
+                socket.emit('requestRestart');
+            }
         } else {
             executeLocalReset();
         }
@@ -435,6 +300,7 @@ function executeLocalReset() {
 
 function triggerExitMatch() {
     showConfirmModal("You want to exit the match?", function() {
+        // 🔥 FIX 3: Menu par jaane se pehle server ko notify karega ki hum room leave kar rahe hain
         if (currentMode === 'online' && socket && socket.connected) {
             socket.emit('leaveCurrentRoom');
         }
@@ -449,8 +315,7 @@ function goBackToHome() {
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
     currentMode = null;
-    savedRoomId = ""; 
-    displayStats(); 
+    savedRoomId = ""; // Clear state variables data 
 }
 
 function triggerPlayAgain() {
@@ -463,7 +328,7 @@ function triggerPlayAgain() {
 function handleAndroidBackButton() {
     if ($('#game-screen').is(':visible')) {
         triggerExitMatch();
-    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible') || $('#auth-screen').is(':visible')) {
+    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible')) {
         goBackToHome();
     } else if ($('#home-screen').is(':visible')) {
         showConfirmModal("You want to exit the game?", function() {
@@ -544,6 +409,7 @@ function renderPieceImages(elementId, pieces) {
     });
 }
 
+// Keep core evaluation systems intact 
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
@@ -584,7 +450,6 @@ function highlightKing(color) {
     }
 }
 
-// Validating targeted layout mapping movements
 function highlight(square) {
     var p = game.get(square);
     if (!p) return;
@@ -600,4 +465,16 @@ function highlight(square) {
 }
 
 function showGameOver(msg) {
-    document.ge
+    document.getElementById('winner-text').innerText = msg;
+    $('#game-over-overlay').fadeIn().css('display', 'flex');
+}
+
+function makeBotMove() {
+    var moves = game.moves();
+    if (moves.length === 0) return;
+    game.move(moves[Math.floor(Math.random() * moves.length)]);
+    board.position(game.fen());
+    updateStatus();
+    bindSquareClicks(); 
+            }
+                            
