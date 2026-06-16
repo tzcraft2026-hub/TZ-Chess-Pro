@@ -10,7 +10,6 @@
     
 <body>
     <div class="app-container">
-        
         <div id="home-screen" class="screen">
             <h1 class="logo">TZ CHESS PRO</h1>
             <div class="stats-container">
@@ -20,13 +19,7 @@
             </div>
             <button class="btn-main" onclick="initGame('bot')">🤖 PLAY WITH BOT</button>
             <button class="btn-main" onclick="initGame('local')">⚔️ PASS & PLAY (2 PLAYER)</button>
-            <button class="btn-main" onclick="checkFriendModeTrigger()">👥 PLAY WITH FRIEND</button>
-        </div>
-
-        <div id="auth-screen" class="screen" style="display: none; justify-content: center; align-items: center;">
-        
-                <button class="btn-secondary" onclick="goBackToHome()">Cancel</button>
-            </div>
+            <button class="btn-main" onclick="showOnlineSetup()">👥 PLAY WITH FRIEND</button>
         </div>
 
         <div id="online-setup" class="screen" style="display: none;">
