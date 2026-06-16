@@ -10,11 +10,6 @@ var countdownValue = 50;
 var isScriptLoaded = false;
 var savedRoomId = "";
 
-// Authentication & Account State System Variables
-var isLoggedIn = false;
-var currentUsername = "";
-var currentAuthMode = 'signup'; 
-
 function getStats() {
     return {
         wins: parseInt(localStorage.getItem('tz_wins')) || 0,
@@ -67,6 +62,7 @@ window.onload = function() {
     }, 3000);
 };
 
+// 🔥 FIX 2: Agar user website ka tab close karega ya refresh karega, toh opponent ko turant 'Opponent Left' chala jayega
 window.onbeforeunload = function() {
     if (socket && socket.connected && currentMode === 'online') {
         socket.emit('leaveCurrentRoom');
@@ -89,97 +85,19 @@ window.onclick = function(event) {
     }
 }
 
-// SIGN IN VALIDATOR CONDITION FOR FRIEND BUTTON MOVEMENT
-function checkFriendModeTrigger() {
-    if (isLoggedIn) {
-        showOnlineSetup();
-    } else {
-        $('.screen').hide();
-        switchAuthMode('signup'); 
-        $('#auth-screen').fadeIn().css('display', 'flex');
-    }
-}
-
-// AUTH INTERFACE LINK TOGGLER SWITCHER SYSTEM
-function switchAuthMode(mode) {
-    currentAuthMode = mode;
-    var submitBtn = document.getElementById('auth-submit-btn');
-    var switchLink = document.getElementById('auth-switch-link-container');
-    var authHeader = document.getElementById('auth-header');
-    
-    document.getElementById('auth-username').value = "";
-    document.getElementById('auth-password').value = "";
-    $('#auth-error-msg').hide();
-
-    if(!submitBtn || !switchLink || !authHeader) return;
-
-    if (mode === 'login') {
-        authHeader.innerText = "Log in to play Friend Mode";
-        submitBtn.innerText = "LOG IN";
-        submitBtn.style.background = "#6b8e23"; 
-        switchLink.innerHTML = 'Have not any account? <span onclick="switchAuthMode(\'signup\')">Sign In</span>';
-    } else {
-        authHeader.innerText = "Sign up to play Friend Mode";
-        submitBtn.innerText = "CREATE NEW ACCOUNT";
-        submitBtn.style.background = "#0288d1"; 
-        switchLink.innerHTML = 'Already have an account? <span onclick="switchAuthMode(\'login\')">Log In</span>';
-    }
-}
-
-// 🔥 GLOBAL FORM VALIDATION & SERVER TRANSMISSION PIPELINE
-function performAuthSubmit() {
-    var uField = document.getElementById('auth-username');
-    var pField = document.getElementById('auth-password');
-    var errEl = document.getElementById('auth-error-msg');
-
-    if(!uField || !pField || !errEl) return;
-
-    var username = uField.value.trim();
-    var password = pField.value;
-
-    // Validation: 6 to 20 characters
-    if (username.length < 6 || username.length > 20) {
-        errEl.innerText = "Username must be 6 to 20 characters!";
-        $(errEl).show();
-        return;
-    }
-
-    // Validation: 8+ characters
-    if (password.length < 8) {
-        errEl.innerText = "Password must be at least 8 characters long!";
-        $(errEl).show();
-        return;
-    }
-
-    $(errEl).hide();
-
-    // Internet Connection Check
-    if (!socket || !socket.connected) {
-        errEl.innerText = "Connecting to TZ Server... Check your Internet!";
-        $(errEl).show();
-        return;
-    }
-
-    if (currentAuthMode === 'signup') {
-        // 🔥 Server ko signup data bhej rahe hain validation ke liye
-        socket.emit('serverRegisterUser', { username: username, password: password });
-        errEl.innerText = "Creating account on cloud server...";
-        $(errEl).show();
-    } else {
-        // 🔥 Server ko login validation data bhej rahe hain
-        socket.emit('serverLoginUser', { username: username, password: password });
-        errEl.innerText = "Verifying credentials...";
-        $(errEl).show();
-    }
-}
-
 function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
     document.getElementById('room-id').value = ""; 
+    
+    var timerDiv = document.getElementById('countdown-timer');
+    if (timerDiv) timerDiv.style.display = 'none'; // Countdown timer ko permanently hide rakhein
+
+    // Agar socket pehle se connected hai toh direct ready kar do
     if (socket && socket.connected) {
         updateServerStatus(true);
     } else {
+        // Agar connect nahi hai toh "Connecting..." state dikhao
         updateServerStatus(false);
     }
 }
@@ -189,45 +107,30 @@ function updateServerStatus(ready) {
     var joinBtn = document.getElementById('btn-join');
     var timerDiv = document.getElementById('countdown-timer');
     
-    if (ready) {
+    // Purane chalte hue countdown intervals ko hamesha ke liye clear rakhein
+    if (countdownInterval) {
         clearInterval(countdownInterval);
-        countdownInterval = null; 
-        if(timerDiv) timerDiv.style.display = 'none';
-        
+        countdownInterval = null;
+    }
+    if (timerDiv) timerDiv.style.display = 'none';
+
+    if (!navigator.onLine) {
+        statusText.innerText = "⚠️ Please Turn On Your Internet Connection!";
+        statusText.style.color = "#ff5252";
+        joinBtn.disabled = true;
+        joinBtn.style.background = "#444";
+    } else if (ready) {
+        // Jab server connect ho jaye
         statusText.innerText = "● Server Connected (Ready)";
         statusText.style.color = "#8cb302";
         joinBtn.disabled = false;
         joinBtn.style.background = "#6b8e23";
     } else {
-        statusText.innerText = "Please wait... Waking up Render Cloud Server.";
-        statusText.style.color = "#ffeb3b";
+        // Jab server background mein connect ho raha ho (Waking up / Connecting)
+        statusText.innerText = "Connecting to Server...";
+        statusText.style.color = "#ffeb3b"; // Yellow color for connecting status
         joinBtn.disabled = true;
         joinBtn.style.background = "#444";
-        
-        if(timerDiv && !countdownInterval && navigator.onLine) {
-            timerDiv.style.display = 'block';
-            countdownValue = 50;
-            document.getElementById('timer-sec').innerText = countdownValue;
-            
-            countdownInterval = setInterval(function() {
-                if (socket && socket.connected) {
-                    updateServerStatus(true);
-                    return;
-                }
-                countdownValue--;
-                document.getElementById('timer-sec').innerText = countdownValue;
-                
-                if(countdownValue <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    statusText.innerText = "Connecting... (Checking status)";
-                }
-            }, 1000);
-        } else if (!navigator.onLine) {
-            statusText.innerText = "⚠️ Please Turn On Your Internet Connection!";
-            statusText.style.color = "#ff5252";
-            if(timerDiv) timerDiv.style.display = 'none';
-        }
     }
 }
 
@@ -247,44 +150,10 @@ function setupSocketListeners() {
         isOnlineReady = true;
         if($('#online-setup').is(':visible')) updateServerStatus(true);
     });
-    
     socket.on('disconnect', function() {
         isOnlineReady = false;
         if($('#online-setup').is(':visible')) updateServerStatus(false);
     });
-
-    // 🔥 SERVER RESPONSE: SIGN UP SYSTEM HANDLER
-    socket.on('authResponse', function(data) {
-        var errEl = document.getElementById('auth-error-msg');
-        if (data.success) {
-            // Problem 1 Fix: Account bante hi direct dynamic login, no second steps!
-            isLoggedIn = true;
-            currentUsername = data.username;
-            alert("Account Created & Logged In successfully as " + data.username + "! 🎉");
-            $(errEl).hide();
-            showOnlineSetup();
-        } else {
-            // Problem 2 Fix: Server check fail hone par (Username already exists) error alert trigger
-            errEl.innerText = data.message || "Username already exists on server database!";
-            $(errEl).show();
-        }
-    });
-
-    // 🔥 SERVER RESPONSE: LOG IN SYSTEM HANDLER
-    socket.on('loginResponse', function(data) {
-        var errEl = document.getElementById('auth-error-msg');
-        if (data.success) {
-            isLoggedIn = true;
-            currentUsername = data.username;
-            alert("Welcome back " + data.username + "!");
-            $(errEl).hide();
-            showOnlineSetup();
-        } else {
-            errEl.innerText = data.message || "Invalid Username or Password!";
-            $(errEl).show();
-        }
-    });
-
     socket.on('playerRole', function(role) { playerColor = role; });
     socket.on('gameStart', function() { initGame('online'); });
     socket.on('move', function(move) {
@@ -431,6 +300,7 @@ function executeLocalReset() {
 
 function triggerExitMatch() {
     showConfirmModal("You want to exit the match?", function() {
+        // 🔥 FIX 3: Menu par jaane se pehle server ko notify karega ki hum room leave kar rahe hain
         if (currentMode === 'online' && socket && socket.connected) {
             socket.emit('leaveCurrentRoom');
         }
@@ -445,7 +315,7 @@ function goBackToHome() {
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
     currentMode = null;
-    savedRoomId = ""; 
+    savedRoomId = ""; // Clear state variables data 
 }
 
 function triggerPlayAgain() {
@@ -458,7 +328,7 @@ function triggerPlayAgain() {
 function handleAndroidBackButton() {
     if ($('#game-screen').is(':visible')) {
         triggerExitMatch();
-    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible') || $('#auth-screen').is(':visible')) {
+    } else if ($('#online-setup').is(':visible') || $('#waiting-screen').is(':visible')) {
         goBackToHome();
     } else if ($('#home-screen').is(':visible')) {
         showConfirmModal("You want to exit the game?", function() {
@@ -539,6 +409,7 @@ function renderPieceImages(elementId, pieces) {
     });
 }
 
+// Keep core evaluation systems intact 
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
@@ -605,5 +476,5 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-                }
-        
+                      }
+                                            
