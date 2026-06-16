@@ -35,16 +35,21 @@ function tryLoadingSocketEngine() {
     if (!navigator.onLine || isScriptLoaded) return;
 
     var sScript = document.createElement('script');
-    sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
+    // Tumhare express server ke static setup ke mutabik relative ya absolute socket script auto-fetch logic
+    sScript.src = window.location.origin + "/socket.io/socket.io.js";
+    
     sScript.onload = function() {
         if (typeof io !== 'undefined') {
             isScriptLoaded = true;
-            socket = io("https://tz-chess-pro.onrender.com");
+            // Website jab usi local ya backend server se load hogi toh URL dene ki zaroorat nahi hoti, io() auto pick karega
+            socket = io(); 
             setupSocketListeners();
         }
     };
     sScript.onerror = function() {
-        isScriptLoaded = false;
+        // Fallback for independent engine files
+        sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
+        socket = io("https://tz-chess-pro.onrender.com");
     };
     document.head.appendChild(sScript);
 }
@@ -62,7 +67,6 @@ window.onload = function() {
     }, 3000);
 };
 
-// 🔥 FIX 2: Agar user website ka tab close karega ya refresh karega, toh opponent ko turant 'Opponent Left' chala jayega
 window.onbeforeunload = function() {
     if (socket && socket.connected && currentMode === 'online') {
         socket.emit('leaveCurrentRoom');
@@ -85,29 +89,28 @@ window.onclick = function(event) {
     }
 }
 
+// 🔥 FIXED FEATURE: Online Setup check real-time state
 function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
     document.getElementById('room-id').value = ""; 
     
     var timerDiv = document.getElementById('countdown-timer');
-    if (timerDiv) timerDiv.style.display = 'none'; // Countdown timer ko permanently hide rakhein
+    if (timerDiv) timerDiv.style.display = 'none';
 
-    // Agar socket pehle se connected hai toh direct ready kar do
     if (socket && socket.connected) {
         updateServerStatus(true);
     } else {
-        // Agar connect nahi hai toh "Connecting..." state dikhao
         updateServerStatus(false);
     }
 }
 
+// 🔥 FIXED FEATURE: Real Connection Validation Logic
 function updateServerStatus(ready) {
     var statusText = document.getElementById('server-status');
     var joinBtn = document.getElementById('btn-join');
     var timerDiv = document.getElementById('countdown-timer');
     
-    // Purane chalte hue countdown intervals ko hamesha ke liye clear rakhein
     if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
@@ -120,15 +123,13 @@ function updateServerStatus(ready) {
         joinBtn.disabled = true;
         joinBtn.style.background = "#444";
     } else if (ready) {
-        // Jab server connect ho jaye
         statusText.innerText = "● Server Connected (Ready)";
         statusText.style.color = "#8cb302";
         joinBtn.disabled = false;
         joinBtn.style.background = "#6b8e23";
     } else {
-        // Jab server background mein connect ho raha ho (Waking up / Connecting)
         statusText.innerText = "Connecting to Server...";
-        statusText.style.color = "#ffeb3b"; // Yellow color for connecting status
+        statusText.style.color = "#ffeb3b";
         joinBtn.disabled = true;
         joinBtn.style.background = "#444";
     }
@@ -200,8 +201,10 @@ function initGame(mode) {
     $('.screen').hide();
     $('#game-screen').show().css('display', 'flex');
     
-    clearInterval(countdownInterval);
-    countdownInterval = null;
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
 
     if (mode === 'bot' || mode === 'local') playerColor = 'w';
 
@@ -300,7 +303,6 @@ function executeLocalReset() {
 
 function triggerExitMatch() {
     showConfirmModal("You want to exit the match?", function() {
-        // 🔥 FIX 3: Menu par jaane se pehle server ko notify karega ki hum room leave kar rahe hain
         if (currentMode === 'online' && socket && socket.connected) {
             socket.emit('leaveCurrentRoom');
         }
@@ -309,13 +311,15 @@ function triggerExitMatch() {
 }
 
 function goBackToHome() {
-    clearInterval(countdownInterval);
-    countdownInterval = null;
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
     $('#game-over-overlay').hide();
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
     currentMode = null;
-    savedRoomId = ""; // Clear state variables data 
+    savedRoomId = ""; 
 }
 
 function triggerPlayAgain() {
@@ -409,7 +413,6 @@ function renderPieceImages(elementId, pieces) {
     });
 }
 
-// Keep core evaluation systems intact 
 function updateStatus() {
     var statusEl = document.getElementById('status');
     $('.check-square').removeClass('check-square');
@@ -476,5 +479,4 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-                      }
-                                            
+}
