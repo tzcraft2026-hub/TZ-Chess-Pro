@@ -1,86 +1,62 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-
 body, html { 
     margin: 0; padding: 0; height: 100%; width: 100%; 
     background-color: #121212; color: white; font-family: sans-serif;
     overflow: hidden;
 }
-
-.app-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
-
-.screen { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    width: 100%; 
-    height: 100vh; 
-    padding: 20px; 
-    position: absolute;
-    top: 0; left: 0;
-}
-
+.screen { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100vh; padding: 20px; }
 #home-screen { padding-top: 8vh; }
-.logo { color: #8cb302; font-size: 2.2rem; margin-bottom: 30px; font-weight: bold; text-align: center; }
+.logo { color: #8cb302; font-size: 2.2rem; margin-bottom: 30px; font-weight: bold; }
 
-/* Server Status Container Stylings */
-#server-status-container { 
-    text-align: center; 
-    background: #1e1e1e; 
-    padding: 15px; 
-    border-radius: 12px; 
-    margin-bottom: 20px; 
-    width: 100%; 
-    max-width: 350px; 
-    border: 1px solid #2d2d2d; 
-}
-#server-status { font-weight: bold; margin: 0; font-size: 1.1rem; }
+#server-status-container { text-align: center; background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 20px; width: 100%; max-width: 350px; border: 1px solid #2d2d2d; }
 #countdown-timer { margin-top: 8px; font-size: 1.1rem; font-weight: bold; color: #ff5252; }
 #timer-sec { font-size: 1.3rem; color: #ffeb3b; }
 
-/* User Scoreboard Display Layout */
 .stats-container { display: flex; width: 100%; max-width: 350px; justify-content: space-around; background: #1e1e1e; padding: 15px; border-radius: 15px; margin-bottom: 30px; border: 1px solid #333; }
-.stat-box { text-align: center; }
 .stat-box span { display: block; font-size: 0.7rem; color: #888; text-transform: uppercase; }
 .stat-box strong { font-size: 1.4rem; color: #fff; }
 
-/* Captured Pieces Layout Setup */
 .captured-box { width: 100%; max-width: 400px; min-height: 45px; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; margin: 8px 0; padding: 5px 10px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .captured-box img { height: 28px; width: auto; filter: drop-shadow(0px 0px 1px rgba(255, 255, 255, 1)); margin: 2px; }
 
-#room-id { width: 100%; max-width: 350px; padding: 16px; background: #1e1e1e; border: 2px solid #333; border-radius: 12px; color: white; font-size: 1rem; outline: none; margin-bottom: 15px; text-align: center; }
+#room-id { width: 100%; max-width: 350px; padding: 16px; background: #1e1e1e; border: 2px solid #333; border-radius: 12px; color: white; font-size: 1rem; outline: none; margin-bottom: 15px; }
 #room-id:focus { border-color: #8cb302; }
 
-/* UI Buttons Core Designs */
-.btn-main { width: 100%; max-width: 350px; padding: 16px; background: #6b8e23; border: none; color: white; font-weight: bold; border-radius: 12px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; }
+.btn-main { width: 100%; max-width: 350px; padding: 16px; background: #6b8e23; border: none; color: white; font-weight: bold; border-radius: 12px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 .btn-main:active { transform: scale(0.98); }
-.btn-secondary { width: 100%; max-width: 350px; padding: 14px; background: transparent; border: 1px solid #444; color: #888; border-radius: 12px; cursor: pointer; margin-top: 10px; font-weight: bold; font-size: 0.95rem; text-align: center; }
+.btn-secondary { width: 100%; max-width: 350px; padding: 14px; background: transparent; border: 1px solid #444; color: #888; border-radius: 12px; cursor: pointer; margin-top: 10px; font-weight: bold; }
 
-/* In-Game Navigation Header Layout */
 .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 400px; margin-bottom: 10px; position: relative; }
 .btn-menu-dots { background: transparent; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0 10px; font-weight: bold; }
 #status { font-weight: bold; color: #fff; flex-grow: 1; text-align: center; font-size: 1.1rem; }
 #status.check { color: #ffeb3b; }
 
-/* Settings Dropdown Panel Configurations */
 .menu-dropdown-container { position: relative; display: inline-block; }
 .dropdown-content { display: none; position: absolute; right: 0; background-color: #1e1e1e; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 8px; z-index: 1001; overflow: hidden; }
 .dropdown-content button { color: white; padding: 12px 16px; text-decoration: none; display: block; background: transparent; border: none; width: 100%; text-align: left; font-size: 0.95rem; cursor: pointer; }
 .dropdown-content button:active { background-color: #2d2d2d; }
 .show { display: block; }
 
-/* Chessboard Alignment Specs */
 #myBoard { width: 92vw; max-width: 400px; border: 4px solid #2c2c2c; border-radius: 8px; position: relative; }
 .check-square { box-shadow: inset 0 0 15px 5px rgba(255, 0, 0, 0.8) !important; }
 .dot { height: 14px; width: 14px; background: rgba(255, 82, 82, 0.6); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 999; }
 
-/* Custom Overlays and Modals Setup */
+/* ================= AUTH SYSTEM STYLINGS CONTAINER ================= */
+.auth-box {
+    width: 100%; max-width: 350px; background: #1e1e1e; padding: 25px 20px;
+    border-radius: 15px; border: 1px solid #2d2d2d; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+.auth-box input {
+    width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 10px;
+    border: 2px solid #333; background: #121212; color: white; font-size: 1rem; outline: none;
+}
+.auth-box input:focus { border-color: #8cb302; }
+#auth-header { font-size: 1.4rem; color: #fff; text-align: center; margin-bottom: 25px; font-weight: bold; }
+#auth-error-msg { color: #ff5252; font-size: 0.9rem; text-align: center; margin-top: -5px; margin-bottom: 15px; display: none; font-weight: bold; }
+.auth-switcher-container { text-align: center; margin-bottom: 15px; font-size: 0.95rem; color: #aaa; }
+.auth-switcher-container span { color: #0288d1; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 4px; }
+.auth-switcher-container span:active { color: #ffeb3b; }
+
 .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 9999; }
 .modal-content { background: #1e1e1e; border: 2px solid #333; border-radius: 15px; width: 85%; max-width: 320px; padding: 20px; text-align: center; }
 .modal-buttons { display: flex; justify-content: space-around; margin-top: 20px; gap: 10px; }
@@ -91,20 +67,11 @@ body, html {
 #game-over-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
 
 .game-over-buttons-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    max-width: 360px;
-    padding: 0 10px;
+    display: flex; justify-content: center; align-items: center;
+    gap: 12px; width: 100%; max-width: 360px; padding: 0 10px;
 }
-.row-btn {
-    flex: 1;
-    margin-bottom: 0 !important;
-}
+.row-btn { flex: 1; margin-bottom: 0 !important; }
 
-/* Connecting Loader Animations */
 .spinner { border: 4px solid #222; border-left-color: #8cb302; width: 40px; height: 40px; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
-				   
+		
