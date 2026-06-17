@@ -8,7 +8,7 @@ var isOnlineReady = false;
 var countdownInterval = null;
 var countdownValue = 50;
 var isScriptLoaded = false;
-var savedRoomId = "";
+var savedRoomId = ""; // Purani room memory trace ko clean karne ke liye
 
 function getStats() {
     return {
@@ -36,12 +36,9 @@ function tryLoadingSocketEngine() {
 
     var sScript = document.createElement('script');
     
-    // Auto-detect environment (Website or App)
     if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // App background environment fallback or local testing
         sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
     } else {
-        // Production Domain deployment
         sScript.src = window.location.origin + "/socket.io/socket.io.js";
     }
     
@@ -170,14 +167,17 @@ function setupSocketListeners() {
         updateStatus();
     });
 
+    // 🔥 BUG FIX: Jab opponent disconnect ho, toh variables completely clean ho jayein
     socket.on('opponentDisconnected', function(data) {
         if (currentMode === 'online' && !game.game_over()) {
             saveStat('win'); 
             showGameOver("Opponent Left the Match! You Won. 🎉");
+            // Soft reset fields to prevent auto-rejoin bug
+            savedRoomId = "";
+            currentMode = null;
         }
     });
 
-    // 🔥 SYNCED LOGIC: Jab samne wale device se request aati hai
     socket.on('receiveRestartRequest', function() {
         if (currentMode === 'online' && !game.game_over()) {
             showOnlineRestartModal("Opponent wants to restart the match?", function() {
@@ -193,14 +193,13 @@ function setupSocketListeners() {
         executeLocalReset();
     });
 
-    // 🔥 SYNCED LOGIC: Jab samne wala cancel kar de
     socket.on('restartDeclined', function() {
         var statusEl = document.getElementById('status');
         statusEl.innerText = "Opponent does not want to restart the match";
-        statusEl.style.color = "#ff5252"; // Message dynamically red ho jayega
+        statusEl.style.color = "#ff5252"; 
         setTimeout(() => {
             updateStatus();
-            statusEl.style.color = "#fff"; // 4 Second baad normal turn logic activation
+            statusEl.style.color = "#fff"; 
         }, 4000);
     });
 }
@@ -254,14 +253,13 @@ function showConfirmModal(message, yesCallback) {
     };
 }
 
-// 🔥 RESTART DYNAMIC BUTTON SETUP (RESTART / CANCEL MODAL TYPE)
 function showOnlineRestartModal(message, restartCallback, noCallback) {
     document.getElementById('confirm-message').innerText = message;
     var yesBtn = document.getElementById('confirm-yes-btn');
     var noBtn = document.getElementById('confirm-no-btn');
     
     yesBtn.innerText = "RESTART";
-    noBtn.innerText = "CANCEL"; // Text configured to CANCEL
+    noBtn.innerText = "CANCEL"; 
     document.getElementById('custom-confirm-box').style.display = 'flex';
     
     yesBtn.onclick = function() {
@@ -320,16 +318,27 @@ function triggerExitMatch() {
     });
 }
 
+// 🔥 BUG FIX: Room memory strings aur Mode state variables ko fully zero state par lana
 function goBackToHome() {
     if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
     }
+    
+    // Forcefully remove socket listening room state inside client engine
+    if (currentMode === 'online' && socket && socket.connected) {
+        socket.emit('leaveCurrentRoom');
+    }
+
     $('#game-over-overlay').hide();
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
+    
+    // Sab variables ko clean aur reset kar diya taaki auto-join glitch na ho
     currentMode = null;
     savedRoomId = ""; 
+    document.getElementById('room-id').value = "";
+    document.getElementById('room-display').innerText = "";
 }
 
 function triggerPlayAgain() {
@@ -369,6 +378,8 @@ function bindSquareClicks() {
         if (square) onSquareClick(square);
     });
 }
+
+// ... rest of code stays exactly same ...
 
 function onSquareClick(square) {
     if (game.game_over()) return;
@@ -413,6 +424,7 @@ function updateCapturedDisplay() {
     }
 }
 
+// ... keeping render and logic states as is ...
 function renderPieceImages(elementId, pieces) {
     const container = document.getElementById(elementId);
     container.innerHTML = "";
@@ -489,5 +501,5 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-            }
-                
+    }
+    
