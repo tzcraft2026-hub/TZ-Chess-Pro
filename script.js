@@ -168,16 +168,25 @@ function setupSocketListeners() {
     });
 
     // 🔥 BUG FIX: Jab opponent disconnect ho, toh variables completely clean ho jayein
-    socket.on('opponentDisconnected', function(data) {
-        if (currentMode === 'online' && !game.game_over()) {
-            saveStat('win'); 
-            showGameOver("Opponent Left the Match! You Won. 🎉");
-            // Soft reset fields to prevent auto-rejoin bug
+        socket.on('opponentDisconnected', function(data) {
+        if (currentMode === 'online') {
+            // Stats badlo aur Game Over dikhao
+            if (!game.game_over()) {
+                saveStat('win');
+                showGameOver("Opponent Left the Match! You Won. 🎉");
+            }
+            
+            // 🔥 BUG FIX: Server ko turant bolo ki main room chhod raha hoon
+            if (socket && socket.connected) {
+                socket.emit('leaveCurrentRoom');
+            }
+            
+            // Screen variables ko yahi par saaf kar do
             savedRoomId = "";
             currentMode = null;
         }
     });
-
+	
     socket.on('receiveRestartRequest', function() {
         if (currentMode === 'online' && !game.game_over()) {
             showOnlineRestartModal("Opponent wants to restart the match?", function() {
@@ -325,8 +334,8 @@ function goBackToHome() {
         countdownInterval = null;
     }
     
-    // Forcefully remove socket listening room state inside client engine
-    if (currentMode === 'online' && socket && socket.connected) {
+    // Server ko room chhodne ka signal bhejo
+    if (socket && socket.connected) {
         socket.emit('leaveCurrentRoom');
     }
 
@@ -334,11 +343,14 @@ function goBackToHome() {
     $('.screen').hide();
     $('#home-screen').fadeIn().css('display', 'flex');
     
-    // Sab variables ko clean aur reset kar diya taaki auto-join glitch na ho
+    // Sab kuch zero state par reset
     currentMode = null;
     savedRoomId = ""; 
+    playerColor = 'w';
     document.getElementById('room-id').value = "";
-    document.getElementById('room-display').innerText = "";
+    if (document.getElementById('room-display')) {
+        document.getElementById('room-display').innerText = "";
+    }
 }
 
 function triggerPlayAgain() {
@@ -501,5 +513,5 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-    }
-    
+        }
+                
