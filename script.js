@@ -35,19 +35,28 @@ function tryLoadingSocketEngine() {
     if (!navigator.onLine || isScriptLoaded) return;
 
     var sScript = document.createElement('script');
-    // Tumhare express server ke static setup ke mutabik relative ya absolute socket script auto-fetch logic
-    sScript.src = window.location.origin + "/socket.io/socket.io.js";
+    
+    // Auto-detect environment (Website or App)
+    if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // App background environment fallback or local testing
+        sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
+    } else {
+        // Production Domain deployment
+        sScript.src = window.location.origin + "/socket.io/socket.io.js";
+    }
     
     sScript.onload = function() {
         if (typeof io !== 'undefined') {
             isScriptLoaded = true;
-            // Website jab usi local ya backend server se load hogi toh URL dene ki zaroorat nahi hoti, io() auto pick karega
-            socket = io(); 
+            if (window.location.protocol === 'file:') {
+                socket = io("https://tz-chess-pro.onrender.com");
+            } else {
+                socket = io(); 
+            }
             setupSocketListeners();
         }
     };
     sScript.onerror = function() {
-        // Fallback for independent engine files
         sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
         socket = io("https://tz-chess-pro.onrender.com");
     };
@@ -89,7 +98,6 @@ window.onclick = function(event) {
     }
 }
 
-// 🔥 FIXED FEATURE: Online Setup check real-time state
 function showOnlineSetup() {
     $('.screen').hide();
     $('#online-setup').fadeIn().css('display', 'flex');
@@ -105,7 +113,6 @@ function showOnlineSetup() {
     }
 }
 
-// 🔥 FIXED FEATURE: Real Connection Validation Logic
 function updateServerStatus(ready) {
     var statusText = document.getElementById('server-status');
     var joinBtn = document.getElementById('btn-join');
@@ -170,9 +177,10 @@ function setupSocketListeners() {
         }
     });
 
+    // 🔥 SYNCED LOGIC: Jab samne wale device se request aati hai
     socket.on('receiveRestartRequest', function() {
         if (currentMode === 'online' && !game.game_over()) {
-            showOnlineRestartModal("Opponent restart the match?", function() {
+            showOnlineRestartModal("Opponent wants to restart the match?", function() {
                 socket.emit('acceptRestart');
                 executeLocalReset();
             }, function() {
@@ -185,13 +193,14 @@ function setupSocketListeners() {
         executeLocalReset();
     });
 
+    // 🔥 SYNCED LOGIC: Jab samne wala cancel kar de
     socket.on('restartDeclined', function() {
         var statusEl = document.getElementById('status');
-        statusEl.innerText = "Opponent can not restart the match";
-        statusEl.style.color = "#ff5252";
+        statusEl.innerText = "Opponent does not want to restart the match";
+        statusEl.style.color = "#ff5252"; // Message dynamically red ho jayega
         setTimeout(() => {
             updateStatus();
-            statusEl.style.color = "#fff";
+            statusEl.style.color = "#fff"; // 4 Second baad normal turn logic activation
         }, 4000);
     });
 }
@@ -245,13 +254,14 @@ function showConfirmModal(message, yesCallback) {
     };
 }
 
+// 🔥 RESTART DYNAMIC BUTTON SETUP (RESTART / CANCEL MODAL TYPE)
 function showOnlineRestartModal(message, restartCallback, noCallback) {
     document.getElementById('confirm-message').innerText = message;
     var yesBtn = document.getElementById('confirm-yes-btn');
     var noBtn = document.getElementById('confirm-no-btn');
     
     yesBtn.innerText = "RESTART";
-    noBtn.innerText = "NO";
+    noBtn.innerText = "CANCEL"; // Text configured to CANCEL
     document.getElementById('custom-confirm-box').style.display = 'flex';
     
     yesBtn.onclick = function() {
@@ -479,4 +489,5 @@ function makeBotMove() {
     board.position(game.fen());
     updateStatus();
     bindSquareClicks(); 
-}
+            }
+                
