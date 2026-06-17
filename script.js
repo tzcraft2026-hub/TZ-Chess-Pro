@@ -36,24 +36,30 @@ function tryLoadingSocketEngine() {
 
     var sScript = document.createElement('script');
     
-    if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
-    } else {
+    // 🔥 ULTIMATE BUG FIX: Auto-detect server location perfectly
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        // Agar game kisi bhi phone ke browser mein chal raha hai (chahe tumhara ho ya friend ka)
+        // toh yeh automatically usi server ka absolute domain aur port pick karega jahan server chal raha hai.
         sScript.src = window.location.origin + "/socket.io/socket.io.js";
+    } else {
+        // Agar app local file system se chal raha hai (jaise AIDE app asset file)
+        sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
     }
     
     sScript.onload = function() {
         if (typeof io !== 'undefined') {
             isScriptLoaded = true;
-            if (window.location.protocol === 'file:') {
-                socket = io("https://tz-chess-pro.onrender.com");
-            } else {
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                // Bina koi URL hardcode kiye automatic secure socket initialization
                 socket = io(); 
+            } else {
+                socket = io("https://tz-chess-pro.onrender.com");
             }
             setupSocketListeners();
         }
     };
     sScript.onerror = function() {
+        // Fallback agar cloud server upar set ho
         sScript.src = "https://tz-chess-pro.onrender.com/socket.io/socket.io.js";
         socket = io("https://tz-chess-pro.onrender.com");
     };
