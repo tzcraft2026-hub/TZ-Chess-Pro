@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>TZ Chess Pro</title>
+    <title>TZ Chess Pro - Web</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css">
 </head>
@@ -24,12 +24,9 @@
 
         <div id="online-setup" class="screen" style="display: none;">
             <h1 class="logo" style="margin-top: 50px;">Online Play</h1>
-            <div id="server-status-container">
-                <p id="server-status">Connecting to Server...</p>
-                <div id="countdown-timer" style="display: none;">Server starts in: <span id="timer-sec">50</span>s</div>
-            </div>
+            
             <input type="text" id="room-id" placeholder="Enter Room Name...">
-            <button class="btn-main" id="btn-join" onclick="joinRoom()" disabled style="background: #444;">JOIN / CREATE</button>
+            <button class="btn-main" id="btn-join" onclick="joinRoom()" style="background: #6b8e23;">JOIN / CREATE</button>
             <button class="btn-secondary" onclick="goBackToHome()">Back to Home</button>
         </div>
 
@@ -88,5 +85,4 @@
     <script src="lib/chessboard-1.0.0.min.js"></script>
     <script src="script.js"></script>
 </body>
-        </html>
-        
+</html>
