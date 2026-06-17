@@ -77,11 +77,23 @@ io.on('connection', (socket) => {
 function handlePlayerExit(socket) {
     if (socket.roomId) {
         const roomId = socket.roomId;
+        
+        // Player ko room se forcefully bahar nikalo
         socket.leave(roomId);
         socket.roomId = null;
+
+        // Bache huye players ko notify karo
         io.to(roomId).emit('opponentDisconnected');
+
+        // 🔥 BUG FIX: Agar room mein ab 0 players hain, toh room ko memory se delete karo
+        const remainingClients = io.sockets.adapter.rooms.get(roomId);
+        if (!remainingClients || remainingClients.size === 0) {
+            io.sockets.adapter.rooms.delete(roomId);
+            console.log(`Room ${roomId} is now completely empty and deleted.`);
+        }
     }
 }
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
