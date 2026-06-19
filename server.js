@@ -30,9 +30,27 @@ io.on('connection', (socket) => {
         socket.roomId = roomId;
 
         if (numClients === 0) {
-            socket.emit('playerRole', 'w'); 
+            // Pehla player join hua, abhi game start nahi hua toh temporary status rakh sakte hain
+            console.log(`First player (${socket.id}) joined room: ${roomId}`);
         } else if (numClients === 1) {
-            socket.emit('playerRole', 'b'); 
+            // 🔥 50-50% RANDOM COLOR DISTRIBUTION LOGIC
+            const roomClients = Array.from(io.sockets.adapter.rooms.get(roomId));
+            const player1Socket = io.sockets.sockets.get(roomClients[0]);
+            const player2Socket = socket;
+
+            const isPlayer1White = Math.random() < 0.5;
+
+            if (isPlayer1White) {
+                if (player1Socket) player1Socket.emit('playerRole', 'w');
+                player2Socket.emit('playerRole', 'b');
+                console.log(`Room ${roomId}: Player 1 is White, Player 2 is Black`);
+            } else {
+                if (player1Socket) player1Socket.emit('playerRole', 'b');
+                player2Socket.emit('playerRole', 'w');
+                console.log(`Room ${roomId}: Player 1 is Black, Player 2 is White`);
+            }
+
+            // Dono ko color milne ke baad match start karo
             io.to(roomId).emit('gameStart'); 
         }
     });
@@ -44,7 +62,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 🔥 BACKEND SIGNAL: Syncing Device Request Protocols
+    // BACKEND SIGNAL: Syncing Device Request Protocols
     socket.on('requestRestart', () => {
         if (socket.roomId) {
             socket.to(socket.roomId).emit('receiveRestartRequest');
@@ -78,14 +96,11 @@ function handlePlayerExit(socket) {
     if (socket.roomId) {
         const roomId = socket.roomId;
         
-        // Player ko room se forcefully bahar nikalo
         socket.leave(roomId);
         socket.roomId = null;
 
-        // Bache huye players ko notify karo
         io.to(roomId).emit('opponentDisconnected');
 
-        // 🔥 BUG FIX: Agar room mein ab 0 players hain, toh room ko memory se delete karo
         const remainingClients = io.sockets.adapter.rooms.get(roomId);
         if (!remainingClients || remainingClients.size === 0) {
             io.sockets.adapter.rooms.delete(roomId);
@@ -94,6 +109,6 @@ function handlePlayerExit(socket) {
     }
 }
 
-
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+            
