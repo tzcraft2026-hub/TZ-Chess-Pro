@@ -12,6 +12,17 @@ app.use(express.static(__dirname));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
+// server.js mein add karein
+
+const CURRENT_VERSION = "1.1.0"; // Jab bhi naya update nikalna ho, yahan version badal dena (e.g., 1.2.0)
+
+app.get('/api/check-update', (req, res) => {
+    res.json({ 
+        version: CURRENT_VERSION,
+        updateUrl: "https://tz-craft.blogspot.com" // Yahan apni website ya download link daal sakte ho
+    });
+});
+
 
 io.on('connection', (socket) => {
     console.log('A user connected: ' + socket.id);
