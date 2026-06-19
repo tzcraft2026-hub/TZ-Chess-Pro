@@ -18,8 +18,8 @@ io.on('connection', (socket) => {
 
     // JOINING ROOM STRUCT
     socket.on('joinRoom', (roomId) => {
-        const clients = io.sockets.adapter.rooms.get(roomId);
-        const numClients = clients ? clients.size : 0;
+        const room = io.sockets.adapter.rooms.get(roomId);
+        const numClients = room ? room.size : 0;
 
         if (numClients >= 2) {
             socket.emit('roomFull', roomId);
@@ -30,27 +30,22 @@ io.on('connection', (socket) => {
         socket.roomId = roomId;
 
         if (numClients === 0) {
-            // Pehla player join hua, abhi game start nahi hua toh temporary status rakh sakte hain
-            console.log(`First player (${socket.id}) joined room: ${roomId}`);
+            // Jab pehla player aayega, abhi role hold par rakhenge jab tak doosra na aa jaye
+            console.log(`Player 1 (${socket.id}) joined room: ${roomId}. Waiting for opponent to flip coin...`);
         } else if (numClients === 1) {
-            // 🔥 50-50% RANDOM COLOR DISTRIBUTION LOGIC
-            const roomClients = Array.from(io.sockets.adapter.rooms.get(roomId));
-            const player1Socket = io.sockets.sockets.get(roomClients[0]);
-            const player2Socket = socket;
+            // Doosra player aa gaya! Ab pure 50-50% chance ke sath randomly coin flip karo
+            const playerIds = Array.from(room); // Dono players ki IDs nikal li
+            const isFirstPlayerWhite = Math.random() < 0.5;
 
-            const isPlayer1White = Math.random() < 0.5;
-
-            if (isPlayer1White) {
-                if (player1Socket) player1Socket.emit('playerRole', 'w');
-                player2Socket.emit('playerRole', 'b');
-                console.log(`Room ${roomId}: Player 1 is White, Player 2 is Black`);
+            if (isFirstPlayerWhite) {
+                io.to(playerIds[0]).emit('playerRole', 'w'); // Pehle join karne wale ko White
+                io.to(playerIds[1]).emit('playerRole', 'b'); // Dusre join karne wale ko Black
             } else {
-                if (player1Socket) player1Socket.emit('playerRole', 'b');
-                player2Socket.emit('playerRole', 'w');
-                console.log(`Room ${roomId}: Player 1 is Black, Player 2 is White`);
+                io.to(playerIds[0]).emit('playerRole', 'b'); // Pehle join karne wale ko Black
+                io.to(playerIds[1]).emit('playerRole', 'w'); // Dusre join karne wale ko White
             }
 
-            // Dono ko color milne ke baad match start karo
+            // Game start signal trigger karo
             io.to(roomId).emit('gameStart'); 
         }
     });
@@ -111,4 +106,4 @@ function handlePlayerExit(socket) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-            
+              
